@@ -1,0 +1,14 @@
+sudo nmap -sS -p- 13.204.83.147
+sudo nmap -sV 13.204.83.147
+sudo nmap -O 13.204.83.147
+
+49.37.222.66
+
+cmd = [
+    "ssh",
+    "-i", "D:/Studies/CEG MCA/4th Sem/BGBZDADS/aws/probe_victim.pem",
+    f"ec2-user@{AWS_IP}",
+    "sudo conntrack -E -o timestamp"
+]
+
+sudo tcpdump -i enX0 -n tcp

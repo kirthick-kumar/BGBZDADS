@@ -1,0 +1,48 @@
+ssh -i probe_attack.pem ec2-user@13.204.87.91
+
+cd ~/cowrie
+source cowrie-env/bin/activate
+twistd -n cowrie
+
+nano live_detector.py
+
+sudo iptables -F
+----
+sudo nmap -sS -p 2222 13.204.87.91
+ssh root@13.204.87.91 -p 2222
+
+
+
+pem
+cd "D:\Studies\CEG MCA\4th Sem\BGBZDADS\aws"
+
+# Remove inherited permissions
+icacls probe_attack.pem /inheritance:r
+
+# Grant only your user read access
+icacls probe_attack.pem /grant:r "$env:USERNAME:R"
+
+# Remove access for others (if present)
+icacls probe_attack.pem /remove "NT AUTHORITY\Authenticated Users" "BUILTIN\Users" "Everyone"
+
+icacls probe_attack.pem /inheritance:r
+icacls probe_attack.pem /grant:r "$($env:USERNAME):R"
+
+
+cd cowrie
+source cowrie-env/bin/activate
+twistd -n cowrie
+
+cowrie
+deactivate
+cd ~
+rm -rf cowrie
+git clone https://github.com/cowrie/cowrie.git
+cd cowrie
+python3.11 -m venv cowrie-env
+source cowrie-env/bin/activate
+python --version
+pip install --upgrade pip setuptools wheel
+pip install -e .
+listen_endpoints = tcp:2222:interface=0.0.0.0
+twistd -n cowrie
