@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================================
-# Package Installer — Amazon Linux (yum)
+# Package Installer — Amazon Linux 2023 (yum)
 # Run as ec2-user: bash install_packages.sh
 # ============================================================
 set -e
 
 echo "═══════════════════════════════════════════════════════"
 echo " GCN Probe Detector — Package Installer"
-echo " Amazon Linux / yum"
+echo " Amazon Linux 2023 / yum"
 echo "═══════════════════════════════════════════════════════"
 
 # ── System packages ──────────────────────────────────────────
@@ -27,27 +27,26 @@ sudo yum install -y \
     libffi-devel \
     bzip2-devel \
     wget \
-    curl \
     net-tools \
     nmap \
+    nmap-ncat \
     telnet \
-    nc \
     iptables \
     iptables-services \
     rsyslog
 
 echo "[✓] System packages installed"
 
-# ── pip upgrade ──────────────────────────────────────────────
+# ── pip upgrade (user space only — avoids rpm-managed pip conflict) ──
 echo ""
-echo "[2/5] Upgrading pip..."
-sudo pip3 install --upgrade pip
+echo "[2/5] Upgrading pip in user space..."
+python3 -m pip install --upgrade pip --user
 echo "[✓] pip upgraded"
 
 # ── PyTorch (CPU) ────────────────────────────────────────────
 echo ""
 echo "[3/5] Installing PyTorch (CPU build)..."
-pip3 install --user \
+python3 -m pip install --user \
     torch \
     --index-url https://download.pytorch.org/whl/cpu
 echo "[✓] PyTorch installed"
@@ -55,7 +54,7 @@ echo "[✓] PyTorch installed"
 # ── torch-geometric + deps ───────────────────────────────────
 echo ""
 echo "[4/5] Installing torch-geometric and dependencies..."
-pip3 install --user \
+python3 -m pip install --user \
     torch-scatter \
     torch-sparse \
     torch-geometric
@@ -64,7 +63,7 @@ echo "[✓] torch-geometric installed"
 # ── Python application packages ──────────────────────────────
 echo ""
 echo "[5/5] Installing Python application packages..."
-pip3 install --user \
+python3 -m pip install --user \
     websockets \
     aiohttp \
     aiohttp-cors \
@@ -73,6 +72,13 @@ pip3 install --user \
     numpy \
     pandas
 echo "[✓] Application packages installed"
+
+# ── Add ~/.local/bin to PATH if not already there ────────────
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+    export PATH=$HOME/.local/bin:$PATH
+    echo "[✓] Added ~/.local/bin to PATH"
+fi
 
 # ── Verify ───────────────────────────────────────────────────
 echo ""
