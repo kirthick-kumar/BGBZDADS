@@ -3,6 +3,7 @@
 # AWS Amazon Linux 2023 — Full Setup (v2)
 # Run as ec2-user with sudo privileges
 # ============================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -e
 
 AWS_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "unknown")
@@ -85,10 +86,10 @@ pip3 install --user \
 echo "[✓] Python deps installed"
 
 # ── 6. Copy files ─────────────────────────────────────────────
-cp ~/detection_agent.py $AGENT_DIR/
-[ -f ~/gcn_autoencoder.pth ] && cp ~/gcn_autoencoder.pth $AGENT_DIR/
-[ -f ~/scaler.pkl ]          && cp ~/scaler.pkl           $AGENT_DIR/
-[ -f ~/threshold.txt ]       && cp ~/threshold.txt        $AGENT_DIR/
+cp "$SCRIPT_DIR/detection_agent.py" $AGENT_DIR/
+[ -f "$SCRIPT_DIR/gcn_autoencoder.pth" ] && cp "$SCRIPT_DIR/gcn_autoencoder.pth" $AGENT_DIR/
+[ -f "$SCRIPT_DIR/scaler.pkl" ] && cp "$SCRIPT_DIR/scaler.pkl"           $AGENT_DIR/
+[ -f "$SCRIPT_DIR/threshold.txt" ] && cp "$SCRIPT_DIR/threshold.txt"        $AGENT_DIR/
 
 # ── 7. Systemd service ───────────────────────────────────────
 sudo tee /etc/systemd/system/probe-detector.service > /dev/null << EOF
