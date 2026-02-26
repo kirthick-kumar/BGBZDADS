@@ -37,11 +37,15 @@ sudo yum install -y \
 
 echo "[✓] System packages installed"
 
-# ── pip upgrade (user space only — avoids rpm-managed pip conflict) ──
+# ── pip upgrade (user space only) ────────────────────────────
 echo ""
 echo "[2/5] Upgrading pip in user space..."
 python3 -m pip install --upgrade pip --user
 echo "[✓] pip upgraded"
+
+# ── Add ~/.local/bin to PATH now so subsequent installs can find things ──
+export PATH=$HOME/.local/bin:$PATH
+export PYTHONPATH=$HOME/.local/lib/python3.9/site-packages:$PYTHONPATH
 
 # ── PyTorch (CPU) ────────────────────────────────────────────
 echo ""
@@ -51,13 +55,24 @@ python3 -m pip install --user \
     --index-url https://download.pytorch.org/whl/cpu
 echo "[✓] PyTorch installed"
 
-# ── torch-geometric + deps ───────────────────────────────────
+# ── torch-geometric (prebuilt wheels — no source build needed) ──
 echo ""
-echo "[4/5] Installing torch-geometric and dependencies..."
+echo "[4/5] Installing torch-geometric from prebuilt wheels..."
+
+# Get torch version for wheel URL
+TORCH_VER=$(python3 -c "import torch; print(torch.__version__.split('+')[0])")
+echo "    Detected torch version: $TORCH_VER"
+
+# Install torch-scatter + torch-sparse from PyG's own wheel server
+# These are prebuilt so no source compilation, no torch import at build time
 python3 -m pip install --user \
     torch-scatter \
     torch-sparse \
-    torch-geometric
+    -f https://data.pyg.org/whl/torch-${TORCH_VER}+cpu.html
+
+# Install torch-geometric itself (pure Python, no build needed)
+python3 -m pip install --user torch-geometric
+
 echo "[✓] torch-geometric installed"
 
 # ── Python application packages ──────────────────────────────
@@ -73,12 +88,12 @@ python3 -m pip install --user \
     pandas
 echo "[✓] Application packages installed"
 
-# ── Add ~/.local/bin to PATH if not already there ────────────
+# ── Persist PATH in ~/.bashrc ─────────────────────────────────
 if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
-    export PATH=$HOME/.local/bin:$PATH
-    echo "[✓] Added ~/.local/bin to PATH"
 fi
+grep -q "PYTHONPATH.*local/lib" ~/.bashrc 2>/dev/null || \
+    echo 'export PYTHONPATH=$HOME/.local/lib/python3.9/site-packages:$PYTHONPATH' >> ~/.bashrc
 
 # ── Verify ───────────────────────────────────────────────────
 echo ""
