@@ -1,86 +1,53 @@
 #!/bin/bash
 # ============================================================
-# iptables setup — runs on AWS before starting the agent
-# Creates a PROBE_LOG chain that logs incoming packets
-# so the detection agent can see nmap SYN scans
+# Step 3: iptables PROBE_LOG setup
+# Called by setup_aws.sh automatically
+# Can also run standalone: sudo bash setup_iptables.sh
 # ============================================================
-set -e
 
 echo "[*] Setting up iptables PROBE_LOG chain..."
 
-# ── Flush any old PROBE_LOG chain ───────────────────────────
+# Flush and recreate PROBE_LOG chain cleanly
 iptables -F PROBE_LOG 2>/dev/null || true
 iptables -X PROBE_LOG 2>/dev/null || true
-
-# ── Create chain ─────────────────────────────────────────────
 iptables -N PROBE_LOG
 
-# ── Log matching packets with tag ────────────────────────────
-# Limit: 60/min per source to avoid log flooding
+# Log matching packets with PROBE_LOG prefix (kern.log)
 iptables -A PROBE_LOG -m limit --limit 60/min --limit-burst 100 \
-  -j LOG --log-prefix "PROBE_LOG " --log-level 4
-
-# ── Return to INPUT after logging ────────────────────────────
+    -j LOG --log-prefix "PROBE_LOG " --log-level 4
 iptables -A PROBE_LOG -j RETURN
 
-# ── Jump into PROBE_LOG chain from INPUT ─────────────────────
-# Only log NEW connections on honeypot ports (not established/related)
-# This catches nmap SYN scans without flooding on normal traffic
-
-# Remove old jump rules first
-iptables -D INPUT -p tcp -m state --state NEW \
-  -m multiport --dports 21,22,23,25,80,443,3306,5432,6379,8080 \
-  -j PROBE_LOG 2>/dev/null || true
-
-iptables -D INPUT -p udp \
-  -m multiport --dports 53,161,123 \
-  -j PROBE_LOG 2>/dev/null || true
-
-# Add jump rules
-iptables -I INPUT 1 -p tcp -m state --state NEW \
-  -m multiport --dports 21,22,23,25,80,443,3306,5432,6379,8080 \
-  -j PROBE_LOG
-
-iptables -I INPUT 2 -p udp \
-  -m multiport --dports 53,161,123 \
-  -j PROBE_LOG
-
-echo "[✓] PROBE_LOG chain active"
-
-# ── For nmap SYN scans that hit random ports ─────────────────
-# Log ALL new TCP SYN packets (not just known ports)
-# This is what catches wide port sweeps
+# Remove old jump rules
 iptables -D INPUT -p tcp --syn -j PROBE_LOG 2>/dev/null || true
-iptables -I INPUT 3 -p tcp --syn -j PROBE_LOG
+iptables -D INPUT -p tcp -m state --state NEW \
+    -m multiport --dports 21,22,23,25,80,443,3306,5432,6379,8080 \
+    -j PROBE_LOG 2>/dev/null || true
 
-echo "[✓] SYN packet logging active (catches all nmap scans)"
+# Log ALL new TCP SYN packets (catches nmap wide port scans)
+iptables -I INPUT 1 -p tcp --syn -j PROBE_LOG
 
-# ── Save rules ───────────────────────────────────────────────
-service iptables save 2>/dev/null || \
-  iptables-save > /etc/iptables/rules.v4 2>/dev/null || \
-  iptables-save > /etc/sysconfig/iptables 2>/dev/null || true
+# Also specifically log known service ports
+iptables -I INPUT 2 -p tcp -m state --state NEW \
+    -m multiport --dports 21,22,23,25,80,443,3306,5432,6379,8080 \
+    -j PROBE_LOG
 
-# ── Also redirect port 22 → Cowrie ──────────────────────────
-# Cowrie runs on 2222, real SSH on 2222 (after you change sshd_config)
-iptables -t nat -D PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2222 2>/dev/null || true
-iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2222
+# NAT: redirect port 22 → 2224 (Cowrie SSH)
+iptables -t nat -D PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2224 2>/dev/null || true
+iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2224
+
+# NAT: redirect port 23 → 2323 (Cowrie Telnet)
 iptables -t nat -D PREROUTING -p tcp --dport 23 -j REDIRECT --to-port 2323 2>/dev/null || true
 iptables -t nat -A PREROUTING -p tcp --dport 23 -j REDIRECT --to-port 2323
 
-echo "[✓] Port forwarding: 22→2222 (Cowrie SSH), 23→2323 (Cowrie Telnet)"
-
-# ── Ensure kern.log gets iptables messages ───────────────────
-# On Amazon Linux 2023, rsyslog may need a kern rule
+# Ensure kern.log receives iptables messages
 if ! grep -q "kern.warning" /etc/rsyslog.conf 2>/dev/null; then
-  echo 'kern.warning /var/log/kern.log' >> /etc/rsyslog.conf
-  systemctl restart rsyslog 2>/dev/null || service rsyslog restart 2>/dev/null || true
-  echo "[✓] rsyslog kern.log rule added"
+    echo 'kern.warning /var/log/kern.log' >> /etc/rsyslog.conf
+    systemctl restart rsyslog 2>/dev/null || true
+    echo "[✓] rsyslog kern.log rule added"
 fi
 
+echo "[✓] iptables PROBE_LOG chain active"
+echo "[✓] Port 22 → 2224 (Cowrie), Port 23 → 2323 (Cowrie Telnet)"
 echo ""
-echo "═══════════════════════════════════════════════════════"
-echo " iptables ready. Test with:"
-echo "   tail -f /var/log/kern.log | grep PROBE_LOG"
-echo " Then from your laptop:"
-echo "   nmap -sS -p 22,80,443 $(curl -s ifconfig.me)"
-echo "═══════════════════════════════════════════════════════"
+echo " Verify with:"
+echo "   sudo tail -f /var/log/kern.log | grep PROBE_LOG"

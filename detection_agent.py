@@ -1,19 +1,16 @@
 """
-GCN Probe Detection Agent — Option B
+GCN Probe Detection Agent — Final
 ─────────────────────────────────────
-Two capture layers:
-  1. iptables LOG  → catches nmap SYN scans, port sweeps, any packet-level probe
-  2. Cowrie JSON   → catches SSH/Telnet brute force, login attempts, commands
+Three capture layers:
+  1. iptables LOG  → catches nmap SYN scans, port sweeps
+  2. Cowrie JSON   → catches SSH/Telnet brute force, login attempts
+  3. nginx access  → catches HTTP visits (never auto-blocked)
 
-Detection: heuristic rules (reliable, demo-safe)
-  • port_scan    : >10 distinct dst_ports from same src in 30s
-  • brute_force  : >5 failed logins from same src in 60s
-  • sweep        : >5 hosts contacted from same src in 30s (if you add more targets)
-  • rapid_conn   : >20 connections from same src in 10s
-  • multi_service: >3 distinct services (ssh+telnet+ftp+http) from same src in 60s
-
-GCN is used purely for graph construction + visual scoring (not for detection).
-The reconstruction error IS shown as a "suspicion score" but detection uses heuristics.
+Auto-block policy:
+  - HTTP visits alone → NEVER auto-blocked (normal traffic)
+  - nmap port scan    → auto-blocked when rule fires
+  - SSH brute force   → auto-blocked when rule fires
+  - Rapid connections → auto-blocked when rule fires
 """
 
 import asyncio
@@ -22,7 +19,6 @@ import os
 import re
 import subprocess
 import time
-import threading
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 
@@ -40,28 +36,32 @@ import aiohttp_cors
 # ─────────────────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────────────────
-COWRIE_LOG   = os.getenv("COWRIE_LOG",   "/home/cowrie/cowrie/var/log/cowrie/cowrie.json")
-KERN_LOG     = os.getenv("KERN_LOG",     "/var/log/kern.log")
-HTTP_LOG     = os.getenv("HTTP_LOG",     "/var/log/nginx/access.log")
-MODEL_PATH   = os.getenv("MODEL_PATH",   "gcn_autoencoder.pth")
-SCALER_PATH  = os.getenv("SCALER_PATH",  "scaler.pkl")
-WS_PORT      = int(os.getenv("WS_PORT",  "8765"))
-HTTP_PORT    = int(os.getenv("HTTP_PORT","8080"))
-HIDDEN_DIM   = 128
-IN_CHANNELS  = 38
-DEVICE       = torch.device("cpu")
+COWRIE_LOG = os.getenv("COWRIE_LOG", "/home/ec2-user/cowrie/var/log/cowrie/cowrie.json")
+KERN_LOG   = os.getenv("KERN_LOG",   "/var/log/kern.log")
+HTTP_LOG   = os.getenv("HTTP_LOG",   "/var/log/nginx/access.log")
+MODEL_PATH = os.getenv("MODEL_PATH", "gcn_autoencoder.pth")
+SCALER_PATH= os.getenv("SCALER_PATH","scaler.pkl")
+WS_PORT    = int(os.getenv("WS_PORT",  "8765"))
+HTTP_PORT  = int(os.getenv("HTTP_PORT","8080"))
+HIDDEN_DIM = 128
+IN_CHANNELS= 38
+DEVICE     = torch.device("cpu")
 
-# Heuristic thresholds — tweak for your demo environment
+# ─────────────────────────────────────────────────────────
+# DETECTION RULES
+# ─────────────────────────────────────────────────────────
 RULES = {
     "port_scan":    {"window": 30,  "threshold": 10,  "label": "Port Scan (nmap)"},
     "brute_force":  {"window": 60,  "threshold": 5,   "label": "SSH Brute Force"},
-    "rapid_conn":   {"window": 10,  "threshold": 15,  "label": "Rapid Connections"},
-    "multi_service":{"window": 60,  "threshold": 3,   "label": "Multi-Service Probe"},
-    "sweep":        {"window": 30,  "threshold": 3,   "label": "Host Sweep"},
+    "rapid_conn":   {"window": 10,  "threshold": 20,  "label": "Rapid Connections"},
+    "multi_service":{"window": 60,  "threshold": 4,   "label": "Multi-Service Probe"},
 }
 
+# Services that are "normal" — HTTP visits alone never trigger probe detection
+BENIGN_ONLY_SERVICES = {"http", "https"}
+
 # ─────────────────────────────────────────────────────────
-# GCN MODEL  (visual scoring only)
+# GCN MODEL (visual scoring only — not used for detection)
 # ─────────────────────────────────────────────────────────
 class GCN_AE(nn.Module):
     def __init__(self, in_channels, hidden_channels):
@@ -82,7 +82,7 @@ if os.path.exists(MODEL_PATH):
         model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
         model.eval()
         gcn_available = True
-        print(f"[✓] GCN model loaded from {MODEL_PATH}")
+        print(f"[✓] GCN model loaded")
     except Exception as e:
         print(f"[!] GCN load error: {e}")
 else:
@@ -96,85 +96,73 @@ if os.path.exists(SCALER_PATH):
 # ─────────────────────────────────────────────────────────
 # STATE
 # ─────────────────────────────────────────────────────────
-connected_ws   = set()
-blocked_ips    = set()   # runtime blocked set
-events_log     = []      # last 300 raw events
-graph_state    = {"nodes": [], "edges": []}
+connected_ws = set()
+blocked_ips  = set()
+events_log   = []
+graph_state  = {"nodes": [], "edges": []}
 
-# Per-IP sliding window counters
-# ip → { "ports": deque of (timestamp, port),
-#         "logins_failed": deque of timestamps,
-#         "connections": deque of timestamps,
-#         "services": deque of (timestamp, service_name),
-#         "label": str, "score": float, "blocked": bool,
-#         "triggered_rules": set }
 ip_state = defaultdict(lambda: {
-    "ports":         deque(),
-    "logins_failed": deque(),
-    "connections":   deque(),
-    "services":      deque(),
-    "label":         "normal",
-    "score":         0.0,
-    "blocked":       False,
+    "ports":           deque(),
+    "logins_failed":   deque(),
+    "connections":     deque(),
+    "services":        deque(),
+    "label":           "normal",
+    "score":           0.0,
+    "blocked":         False,
     "triggered_rules": set(),
-    "first_seen":    time.time(),
-    "last_seen":     time.time(),
-    "event_count":   0,
+    "first_seen":      time.time(),
+    "last_seen":       time.time(),
+    "event_count":     0,
+    "http_only":       True,   # True until a non-HTTP event is seen
 })
 
 # ─────────────────────────────────────────────────────────
-# HEURISTIC DETECTION ENGINE
+# DETECTION ENGINE
 # ─────────────────────────────────────────────────────────
-def prune_window(dq: deque, window_sec: float):
-    """Remove entries older than window_sec from left of deque."""
-    cutoff = time.time() - window_sec
+def prune(dq: deque, window: float):
+    cutoff = time.time() - window
     while dq and dq[0][0] < cutoff:
         dq.popleft()
 
-def evaluate_rules(ip: str) -> tuple[bool, list[str], float]:
-    """
-    Returns (is_probe, triggered_rule_labels, score_0_to_1)
-    Score is normalized heuristic score — shown in UI as GCN suspicion.
-    """
+def evaluate_rules(ip: str):
     st = ip_state[ip]
-    now = time.time()
     triggered = []
-    scores = []
+    scores    = []
 
-    # ── Rule 1: Port scan ────────────────────────────────
-    prune_window(st["ports"], RULES["port_scan"]["window"])
+    # Port scan
+    prune(st["ports"], RULES["port_scan"]["window"])
     distinct_ports = len(set(p for _, p in st["ports"]))
     if distinct_ports >= RULES["port_scan"]["threshold"]:
         triggered.append(RULES["port_scan"]["label"])
         scores.append(min(distinct_ports / 100, 1.0))
 
-    # ── Rule 2: Brute force ──────────────────────────────
-    prune_window(st["logins_failed"], RULES["brute_force"]["window"])
-    failed_count = len(st["logins_failed"])
-    if failed_count >= RULES["brute_force"]["threshold"]:
+    # Brute force
+    prune(st["logins_failed"], RULES["brute_force"]["window"])
+    failed = len(st["logins_failed"])
+    if failed >= RULES["brute_force"]["threshold"]:
         triggered.append(RULES["brute_force"]["label"])
-        scores.append(min(failed_count / 30, 1.0))
+        scores.append(min(failed / 30, 1.0))
 
-    # ── Rule 3: Rapid connections ────────────────────────
-    prune_window(st["connections"], RULES["rapid_conn"]["window"])
-    conn_count = len(st["connections"])
-    if conn_count >= RULES["rapid_conn"]["threshold"]:
+    # Rapid connections
+    prune(st["connections"], RULES["rapid_conn"]["window"])
+    conns = len(st["connections"])
+    if conns >= RULES["rapid_conn"]["threshold"]:
         triggered.append(RULES["rapid_conn"]["label"])
-        scores.append(min(conn_count / 60, 1.0))
+        scores.append(min(conns / 60, 1.0))
 
-    # ── Rule 4: Multi-service probe ──────────────────────
-    prune_window(st["services"], RULES["multi_service"]["window"])
-    distinct_svcs = len(set(s for _, s in st["services"]))
-    if distinct_svcs >= RULES["multi_service"]["threshold"]:
+    # Multi-service (only counts non-HTTP services)
+    prune(st["services"], RULES["multi_service"]["window"])
+    non_http_svcs = set(s for _, s in st["services"] if s not in BENIGN_ONLY_SERVICES)
+    if len(non_http_svcs) >= RULES["multi_service"]["threshold"]:
         triggered.append(RULES["multi_service"]["label"])
-        scores.append(min(distinct_svcs / 6, 1.0))
+        scores.append(min(len(non_http_svcs) / 6, 1.0))
 
-    # Composite score: weighted max of individual scores
+    # Composite score
     score = max(scores) if scores else min(
-        (distinct_ports / RULES["port_scan"]["threshold"] * 0.4 +
-         failed_count   / RULES["brute_force"]["threshold"] * 0.3 +
-         conn_count     / RULES["rapid_conn"]["threshold"]  * 0.2 +
-         distinct_svcs  / RULES["multi_service"]["threshold"]* 0.1),
+        distinct_ports / max(RULES["port_scan"]["threshold"], 1) * 0.4 +
+        failed         / max(RULES["brute_force"]["threshold"], 1) * 0.3 +
+        conns          / max(RULES["rapid_conn"]["threshold"], 1)  * 0.2 +
+        len(non_http_svcs) / max(RULES["multi_service"]["threshold"], 1) * 0.1,
         0.99
     )
 
@@ -196,14 +184,15 @@ def block_ip(ip: str):
         )
         print(f"[BLOCKED] {ip}")
     except Exception as e:
-        print(f"[!] iptables block failed for {ip}: {e}")
+        print(f"[!] Block failed for {ip}: {e}")
 
 def unblock_ip(ip: str):
     blocked_ips.discard(ip)
     if ip in ip_state:
-        ip_state[ip]["blocked"] = False
-        ip_state[ip]["label"] = "normal"
+        ip_state[ip]["blocked"]         = False
+        ip_state[ip]["label"]           = "normal"
         ip_state[ip]["triggered_rules"] = set()
+        ip_state[ip]["score"]           = 0.0
     try:
         subprocess.run(
             ["sudo", "iptables", "-D", "INPUT", "-s", ip, "-j", "DROP"],
@@ -211,23 +200,26 @@ def unblock_ip(ip: str):
         )
         print(f"[UNBLOCKED] {ip}")
     except Exception as e:
-        print(f"[!] iptables unblock failed for {ip}: {e}")
+        print(f"[!] Unblock failed for {ip}: {e}")
 
 # ─────────────────────────────────────────────────────────
-# PROCESS AN EVENT (called by both tailers)
+# CORE EVENT PROCESSOR
 # ─────────────────────────────────────────────────────────
 async def process_event(ip: str, event_type: str, service: str,
-                         dst_port: int = 0, extra: dict = None):
-    """Central event processor — updates state, runs rules, broadcasts."""
-    if not ip or ip in ("127.0.0.1", "::1"):
+                        dst_port: int = 0, extra: dict = None):
+    if not ip or ip in ("127.0.0.1", "::1", "0.0.0.0"):
         return
 
-    now  = time.time()
-    ts   = datetime.now(timezone.utc).isoformat()
-    st   = ip_state[ip]
+    now = time.time()
+    ts  = datetime.now(timezone.utc).isoformat()
+    st  = ip_state[ip]
 
     st["last_seen"]   = now
     st["event_count"] += 1
+
+    # Track if this IP has done anything beyond HTTP
+    if service not in BENIGN_ONLY_SERVICES:
+        st["http_only"] = False
 
     # Update sliding windows
     if dst_port > 0:
@@ -237,55 +229,56 @@ async def process_event(ip: str, event_type: str, service: str,
     if service:
         st["services"].append((now, service))
 
-    if event_type == "cowrie.login.failed":
-        st["logins_failed"].append((now,))
+    if event_type in ("cowrie.login.failed", "cowrie.login.success"):
+        if event_type == "cowrie.login.failed":
+            st["logins_failed"].append((now,))
 
     # Run detection
     is_probe, rules_hit, score = evaluate_rules(ip)
     st["score"] = score
+
     if is_probe:
         st["label"] = "probe"
         for r in rules_hit:
             st["triggered_rules"].add(r)
-        if ip not in blocked_ips:
+        # Only auto-block if not HTTP-only traffic
+        if ip not in blocked_ips and not st["http_only"]:
             block_ip(ip)
     elif st["label"] != "probe":
         st["label"] = "normal"
 
-    # Add to event log
+    # Log event
     entry = {
         "timestamp": ts,
-        "src_ip": ip,
-        "eventid": event_type,
-        "service": service,
-        "dst_port": dst_port,
-        "score": score,
-        "label": st["label"],
-        "rules": list(st["triggered_rules"]),
+        "src_ip":    ip,
+        "eventid":   event_type,
+        "service":   service,
+        "dst_port":  dst_port,
+        "score":     score,
+        "label":     st["label"],
+        "rules":     list(st["triggered_rules"]),
         **(extra or {}),
     }
     events_log.append(entry)
     if len(events_log) > 300:
         events_log.pop(0)
 
-    # Rebuild graph
     rebuild_graph()
 
-    # Broadcast
     await broadcast({
-        "type": "event",
+        "type":      "event",
         "timestamp": ts,
-        "src_ip": ip,
-        "service": service,
-        "eventid": event_type,
-        "dst_port": dst_port,
-        "score": score,
-        "label": st["label"],
+        "src_ip":    ip,
+        "service":   service,
+        "eventid":   event_type,
+        "dst_port":  dst_port,
+        "score":     score,
+        "label":     st["label"],
         "rules_hit": rules_hit,
-        "blocked": ip in blocked_ips,
-        "graph": graph_state,
-        "sessions": get_sessions(),
-        "events": events_log[-60:],
+        "blocked":   ip in blocked_ips,
+        "graph":     graph_state,
+        "sessions":  get_sessions(),
+        "events":    events_log[-60:],
     })
 
 # ─────────────────────────────────────────────────────────
@@ -308,7 +301,8 @@ def rebuild_graph():
             "rules":          list(st["triggered_rules"]),
             "events":         st["event_count"],
         })
-        # Distinct services this IP touched
+
+        # Edge to each distinct service
         svcs = set(s for _, s in st["services"])
         for svc in svcs:
             svc_id = f"s_{svc}"
@@ -317,11 +311,10 @@ def rebuild_graph():
                 service_seen[svc_id] = True
             edges.append({"source": host_id, "target": svc_id})
 
-        # Also add port-range nodes for scanners (shows nmap behaviour nicely)
-        prune_window(st["ports"], 120)
-        distinct_ports = sorted(set(p for _, p in st["ports"]))
+        # Port range bucket nodes for wide scanners
+        prune(st["ports"], 120)
+        distinct_ports = set(p for _, p in st["ports"])
         if len(distinct_ports) >= 5:
-            # Bucket ports into ranges for cleaner graph
             buckets = set()
             for p in distinct_ports:
                 if p < 1024:   buckets.add("ports:0-1023")
@@ -340,13 +333,13 @@ def rebuild_graph():
 def get_sessions():
     return [
         {
-            "ip":      ip,
-            "label":   st["label"],
-            "score":   round(st["score"], 4),
-            "blocked": st["blocked"],
-            "events":  st["event_count"],
-            "rules":   list(st["triggered_rules"]),
-            "services":list(set(s for _, s in st["services"])),
+            "ip":            ip,
+            "label":         st["label"],
+            "score":         round(st["score"], 4),
+            "blocked":       st["blocked"],
+            "events":        st["event_count"],
+            "rules":         list(st["triggered_rules"]),
+            "services":      list(set(s for _, s in st["services"])),
             "ports_scanned": len(set(p for _, p in st["ports"])),
             "failed_logins": len(st["logins_failed"]),
         }
@@ -354,13 +347,9 @@ def get_sessions():
     ]
 
 # ─────────────────────────────────────────────────────────
-# LAYER 1: iptables LOG tailer  (catches nmap SYN scans)
+# LAYER 1: iptables LOG tailer
 # ─────────────────────────────────────────────────────────
-# Pattern: kernel: [timestamp] IN=eth0 OUT= ... SRC=x.x.x.x DST=y.y.y.y ... DPT=22
-KERN_RE = re.compile(
-    r'SRC=(\S+)\s+DST=\S+\s+.*?DPT=(\d+)',
-    re.IGNORECASE
-)
+KERN_RE = re.compile(r'SRC=(\S+)\s+DST=\S+\s+.*?DPT=(\d+)', re.IGNORECASE)
 SERVICE_PORT_MAP = {
     22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp",
     80: "http", 443: "https", 3306: "mysql",
@@ -368,7 +357,6 @@ SERVICE_PORT_MAP = {
 }
 
 async def tail_kern_log():
-    """Tail /var/log/kern.log for iptables PROBE_LOG entries."""
     print(f"[*] Tailing kern.log: {KERN_LOG}")
     while not os.path.exists(KERN_LOG):
         await asyncio.sleep(2)
@@ -380,7 +368,7 @@ async def tail_kern_log():
     )
     async for raw in proc.stdout:
         line = raw.decode("utf-8", errors="ignore")
-        if "PROBE_LOG" not in line:   # only lines tagged by our iptables rule
+        if "PROBE_LOG" not in line:
             continue
         m = KERN_RE.search(line)
         if not m:
@@ -388,11 +376,10 @@ async def tail_kern_log():
         src_ip = m.group(1)
         dpt    = int(m.group(2))
         svc    = SERVICE_PORT_MAP.get(dpt, f"port-{dpt}")
-        await process_event(src_ip, "iptables.probe_log", svc, dpt,
-                            extra={"raw": line.strip()[-120:]})
+        await process_event(src_ip, "iptables.probe_log", svc, dpt)
 
 # ─────────────────────────────────────────────────────────
-# LAYER 2: Cowrie JSON tailer  (catches SSH/Telnet sessions)
+# LAYER 2: Cowrie JSON tailer
 # ─────────────────────────────────────────────────────────
 async def tail_cowrie_log():
     print(f"[*] Tailing Cowrie log: {COWRIE_LOG}")
@@ -416,16 +403,44 @@ async def tail_cowrie_log():
 
         src_ip  = ev.get("src_ip", "")
         eventid = ev.get("eventid", "")
-        dpt     = ev.get("dst_port", 0)
-        svc     = {22:"ssh", 23:"telnet", 21:"ftp"}.get(dpt, "ssh")
+        dpt     = ev.get("dst_port", 22)
+        svc     = {22: "ssh", 23: "telnet", 21: "ftp"}.get(dpt, "ssh")
 
-        # Always process connections and login failures
         if any(x in eventid for x in ["connect", "login", "command", "download", "session"]):
             await process_event(src_ip, eventid, svc, dpt,
-                                extra={"message": ev.get("message","")[:120]})
+                                extra={"message": ev.get("message", "")[:120]})
 
 # ─────────────────────────────────────────────────────────
-# WEBSOCKET
+# LAYER 3: nginx access log tailer
+# Every HTTP visit creates a node — never auto-blocked
+# ─────────────────────────────────────────────────────────
+NGINX_RE = re.compile(r'^(\S+)\s+-\s+-\s+\[.*?\]\s+"(\w+)\s+(\S+)\s+HTTP')
+
+async def tail_http_log():
+    print(f"[*] Tailing HTTP log: {HTTP_LOG}")
+    while not os.path.exists(HTTP_LOG):
+        await asyncio.sleep(3)
+
+    proc = await asyncio.create_subprocess_exec(
+        "tail", "-F", "-n", "0", HTTP_LOG,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    async for raw in proc.stdout:
+        line = raw.decode("utf-8", errors="ignore").strip()
+        if not line:
+            continue
+        m = NGINX_RE.match(line)
+        if not m:
+            continue
+        src_ip = m.group(1)
+        method = m.group(2)
+        path   = m.group(3)
+        await process_event(src_ip, "http.request", "http", 80,
+                            extra={"method": method, "path": path[:80]})
+
+# ─────────────────────────────────────────────────────────
+# WEBSOCKET SERVER
 # ─────────────────────────────────────────────────────────
 async def ws_handler(websocket, path=None):
     connected_ws.add(websocket)
@@ -447,8 +462,10 @@ async def ws_handler(websocket, path=None):
                     ip = cmd.get("ip", "")
                     unblock_ip(ip)
                     rebuild_graph()
-                    await broadcast({"type": "unblocked", "ip": ip,
-                                     "graph": graph_state, "sessions": get_sessions()})
+                    await broadcast({
+                        "type": "unblocked", "ip": ip,
+                        "graph": graph_state, "sessions": get_sessions()
+                    })
                 elif action == "reset":
                     ip_state.clear()
                     blocked_ips.clear()
@@ -462,7 +479,6 @@ async def ws_handler(websocket, path=None):
                     value = cmd.get("value")
                     if rule in RULES and key in RULES[rule]:
                         RULES[rule][key] = value
-                        await broadcast({"type": "rules_updated", "rules": RULES})
             except Exception as ex:
                 print(f"[WS] cmd error: {ex}")
     except websockets.exceptions.ConnectionClosed:
@@ -495,16 +511,20 @@ async def h_unblock(req):
     d  = await req.json()
     ip = d.get("ip", "")
     unblock_ip(ip)
-    return web.json_response({"ok": True})
+    rebuild_graph()
+    return web.json_response({"ok": True, "ip": ip})
 
 async def h_reset(req):
-    ip_state.clear(); blocked_ips.clear()
+    ip_state.clear()
+    blocked_ips.clear()
     events_log.clear()
-    graph_state["nodes"] = []; graph_state["edges"] = []
+    graph_state["nodes"] = []
+    graph_state["edges"] = []
+    await broadcast({"type": "reset"})
     return web.json_response({"ok": True})
 
 async def h_inject(req):
-    """Manual event injection for testing without real attacks."""
+    """Manual event injection for testing."""
     d       = await req.json()
     ip      = d.get("ip", "1.2.3.4")
     etype   = d.get("type", "iptables.probe_log")
@@ -522,49 +542,15 @@ def make_http_app():
             allow_headers="*", allow_methods="*",
         )
     })
-    for path, handler in [
-        ("/status",  h_status),
-        ("/unblock", h_unblock),
-        ("/reset",   h_reset),
-        ("/inject",  h_inject),
+    for path, handler, method in [
+        ("/status",  h_status,  "GET"),
+        ("/unblock", h_unblock, "POST"),
+        ("/reset",   h_reset,   "POST"),
+        ("/inject",  h_inject,  "POST"),
     ]:
-        method = "GET" if path == "/status" else "POST"
         r = getattr(app.router, f"add_{method.lower()}")(path, handler)
         cors.add(r)
     return app
-
-
-# ─────────────────────────────────────────────────────────
-# LAYER 3: nginx access log tailer (catches HTTP visits)
-# ─────────────────────────────────────────────────────────
-# nginx combined log format:
-# 1.2.3.4 - - [27/Feb/2026:04:00:00 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/7.88"
-NGINX_RE = re.compile(r'^(\S+)\s+-\s+-\s+\[.*?\]\s+"(\w+)\s+(\S+)\s+HTTP')
-
-async def tail_http_log():
-    """Tail nginx access log — every HTTP visit creates a node."""
-    print(f"[*] Tailing HTTP log: {HTTP_LOG}")
-    while not os.path.exists(HTTP_LOG):
-        await asyncio.sleep(3)
-
-    proc = await asyncio.create_subprocess_exec(
-        "tail", "-F", "-n", "0", HTTP_LOG,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    async for raw in proc.stdout:
-        line = raw.decode("utf-8", errors="ignore").strip()
-        if not line:
-            continue
-        m = NGINX_RE.match(line)
-        if not m:
-            continue
-        src_ip = m.group(1)
-        method = m.group(2)
-        path   = m.group(3)
-        await process_event(src_ip, "http.request", "http", 80,
-                            extra={"method": method, "path": path[:80]})
-
 
 # ─────────────────────────────────────────────────────────
 # MAIN
@@ -578,7 +564,6 @@ async def main():
     await web.TCPSite(runner, "0.0.0.0", HTTP_PORT).start()
     print(f"[✓] HTTP API   http://0.0.0.0:{HTTP_PORT}")
 
-    # Run both tailers concurrently
     await asyncio.gather(
         tail_kern_log(),
         tail_cowrie_log(),
