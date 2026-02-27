@@ -1,12 +1,13 @@
 #!/bin/bash
 # ============================================================
 # AWS Full Setup — Amazon Linux 2023
-# Run: bash setup_aws.sh
+# Run from the folder containing all project files:
+#   bash setup_aws.sh
 #
 # Port layout:
-#   22   = real SSH (UNCHANGED — do not touch)
-#   2222 = Cowrie SSH honeypot (direct)
-#   2323 = Cowrie Telnet honeypot (direct)
+#   22   = real SSH (UNCHANGED)
+#   2222 = Cowrie SSH honeypot
+#   2223 = Cowrie Telnet honeypot
 #   80   = nginx HTTP
 #   8765 = WebSocket (dashboard)
 #   8080 = HTTP API
@@ -15,22 +16,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="/opt/probe_detector"
 AWS_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "unknown")
 
-echo "═══════════════════════════════════════════════════════"
+echo "======================================================="
 echo " GCN Probe Detector — AWS Setup"
 echo " Server IP: $AWS_IP"
-echo " SSH stays on port 22 — NO port changes"
-echo "═══════════════════════════════════════════════════════"
+echo "======================================================="
 
-# ── 1. Install Cowrie ────────────────────────────────────────
+# ── 1. Cowrie ────────────────────────────────────────────────
 echo ""
-echo "[1/6] Installing Cowrie honeypot..."
+echo "[1/6] Installing Cowrie..."
 cd ~
+
 if [ ! -d cowrie ]; then
     git clone https://github.com/cowrie/cowrie.git
 fi
 cd cowrie
 
-# Use python3.11 — Cowrie requires >=3.10
 if [ ! -d cowrie-env ]; then
     python3.11 -m venv cowrie-env
 fi
@@ -38,65 +38,42 @@ source cowrie-env/bin/activate
 pip install --quiet -r requirements.txt
 pip install -e . -q 2>/dev/null || true
 
-# Config
-if [ ! -f etc/cowrie.cfg ]; then
-    cp etc/cowrie.cfg.dist etc/cowrie.cfg
-fi
-sed -i 's/hostname = svr04/hostname = prod-server-01/' etc/cowrie.cfg 2>/dev/null || true
-
-# Set Cowrie SSH to listen on 2222, Telnet on 2323 (both direct)
-sed -i 's|^listen_endpoints = .*|listen_endpoints = tcp:2222:interface=0.0.0.0|g' etc/cowrie.cfg
-sed -i 's|^listen_endpoints = .*|listen_endpoints = tcp:2222:interface=0.0.0.0|g' etc/cowrie.cfg.dist
-
-# Fix any duplicate listen_endpoints lines
+# Always generate a CLEAN config from scratch using configparser
+# This avoids ALL duplicate section/option errors from previous runs
+echo "    Writing clean cowrie.cfg via configparser..."
 python3 - << 'PYEOF'
-import re
+import configparser
 
-for fname in ['etc/cowrie.cfg', 'etc/cowrie.cfg.dist']:
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
+# Read the dist file as base
+cfg = configparser.ConfigParser(strict=False)
+cfg.read('etc/cowrie.cfg.dist')
 
-        # Keep only first active listen_endpoints line
-        seen = False
-        out = []
-        for line in lines:
-            if line.startswith('listen_endpoints') and not line.strip().startswith('#'):
-                if not seen:
-                    out.append('listen_endpoints = tcp:2222:interface=0.0.0.0\n')
-                    seen = True
-            else:
-                out.append(line)
+# Ensure sections exist
+for sec in ['honeypot', 'telnet', 'output_jsonlog']:
+    if not cfg.has_section(sec):
+        cfg.add_section(sec)
 
-        with open(fname, 'w') as f:
-            f.writelines(out)
-        print(f"    fixed: {fname}")
-    except Exception as e:
-        print(f"    skip: {fname}: {e}")
-PYEOF
+# Set required values
+cfg.set('honeypot', 'hostname', 'prod-server-01')
+cfg.set('honeypot', 'listen_endpoints', 'tcp:2222:interface=0.0.0.0')
+cfg.set('telnet',   'enabled', 'true')
+cfg.set('telnet',   'listen_endpoints', 'tcp:2223:interface=0.0.0.0')
+cfg.set('output_jsonlog', 'enabled', 'true')
+cfg.set('output_jsonlog', 'logfile',  '${logpath}/cowrie.json')
 
-# Remove duplicate output_jsonlog then add once
-python3 - << 'PYEOF'
-import re
-try:
-    with open('etc/cowrie.cfg', 'r') as f:
-        content = f.read()
-    content = re.sub(r'\n\[output_jsonlog\][^\[]*', '', content)
-    content += '\n[output_jsonlog]\nenabled = true\nlogfile = ${logpath}/cowrie.json\n'
-    with open('etc/cowrie.cfg', 'w') as f:
-        f.write(content)
-    print("    output_jsonlog configured")
-except Exception as e:
-    print(f"    warning: {e}")
+with open('etc/cowrie.cfg', 'w') as f:
+    cfg.write(f)
+
+print("    cowrie.cfg written OK")
 PYEOF
 
 deactivate
 cd ~
-echo "[✓] Cowrie installed"
+echo "[OK] Cowrie installed"
 
 # ── 2. Start Cowrie ──────────────────────────────────────────
 echo ""
-echo "[2/6] Starting Cowrie on port 2222..."
+echo "[2/6] Starting Cowrie..."
 cd ~/cowrie
 source cowrie-env/bin/activate
 cowrie-env/bin/cowrie stop 2>/dev/null || true
@@ -106,37 +83,47 @@ sleep 3
 cowrie-env/bin/cowrie status
 deactivate
 cd ~
-echo "[✓] Cowrie started"
+echo -n "    Listening on: "
+sudo ss -tlnp | grep -E "2222|2223" | awk '{print $4}' | tr '\n' ' '
+echo ""
+echo "[OK] Cowrie started"
 
 # ── 3. nginx ─────────────────────────────────────────────────
 echo ""
-echo "[3/6] Starting nginx on port 80..."
+echo "[3/6] Starting nginx..."
 sudo systemctl start nginx
 sudo systemctl enable nginx
-echo "[✓] nginx started"
+
+# Filter AWS health checks from access log (15.177.x.x flood)
+sudo tee /etc/nginx/conf.d/filter_healthchecks.conf > /dev/null << 'EOF'
+geo $loggable {
+    default       1;
+    15.177.0.0/16 0;
+}
+access_log /var/log/nginx/access.log combined if=$loggable;
+EOF
+sudo nginx -t 2>/dev/null && sudo systemctl reload nginx
+echo "[OK] nginx on port 80"
 
 # ── 4. iptables ──────────────────────────────────────────────
 echo ""
 echo "[4/6] Configuring iptables..."
 sudo bash "$SCRIPT_DIR/setup_iptables.sh"
+for port in 22 80 2222 2223 8765 8080; do
+    sudo iptables -I INPUT -p tcp --dport $port -j ACCEPT 2>/dev/null || true
+done
+echo "[OK] iptables done"
 
-# Allow all our service ports through iptables
-sudo iptables -I INPUT -p tcp --dport 22   -j ACCEPT 2>/dev/null || true
-sudo iptables -I INPUT -p tcp --dport 80   -j ACCEPT 2>/dev/null || true
-sudo iptables -I INPUT -p tcp --dport 2222 -j ACCEPT 2>/dev/null || true
-sudo iptables -I INPUT -p tcp --dport 2323 -j ACCEPT 2>/dev/null || true
-sudo iptables -I INPUT -p tcp --dport 8765 -j ACCEPT 2>/dev/null || true
-sudo iptables -I INPUT -p tcp --dport 8080 -j ACCEPT 2>/dev/null || true
-echo "[✓] iptables configured"
-
-# ── 5. Deploy detection agent ────────────────────────────────
+# ── 5. Detection agent ───────────────────────────────────────
 echo ""
 echo "[5/6] Deploying detection agent..."
 sudo mkdir -p $AGENT_DIR
 sudo chown ec2-user:ec2-user $AGENT_DIR
 cp "$SCRIPT_DIR/detection_agent.py" $AGENT_DIR/
-[ -f "$SCRIPT_DIR/gcn_autoencoder.pth" ] && cp "$SCRIPT_DIR/gcn_autoencoder.pth" $AGENT_DIR/
-[ -f "$SCRIPT_DIR/scaler.pkl" ]          && cp "$SCRIPT_DIR/scaler.pkl"           $AGENT_DIR/
+
+for f in gcn_autoencoder.pth scaler.pkl encoders.pkl threshold.txt; do
+    [ -f "$SCRIPT_DIR/$f" ] && cp "$SCRIPT_DIR/$f" $AGENT_DIR/ && echo "    copied $f"
+done
 
 sudo tee /etc/systemd/system/probe-detector.service > /dev/null << SVCEOF
 [Unit]
@@ -151,6 +138,7 @@ Environment=KERN_LOG=/var/log/kern.log
 Environment=HTTP_LOG=/var/log/nginx/access.log
 Environment=MODEL_PATH=${AGENT_DIR}/gcn_autoencoder.pth
 Environment=SCALER_PATH=${AGENT_DIR}/scaler.pkl
+Environment=ENCODER_PATH=${AGENT_DIR}/encoders.pkl
 Environment=WS_PORT=8765
 Environment=HTTP_PORT=8080
 Environment=PATH=/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin
@@ -165,44 +153,28 @@ SVCEOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable probe-detector
-
 sudo fuser -k 8765/tcp 2>/dev/null || true
 sudo fuser -k 8080/tcp 2>/dev/null || true
 sleep 1
-
 sudo systemctl start probe-detector
 sleep 3
-
-if sudo systemctl is-active probe-detector --quiet; then
-    echo "[✓] probe-detector running"
-else
-    echo "[!] probe-detector failed — running directly to show error:"
-    cd $AGENT_DIR && python3 detection_agent.py &
-    sleep 3
-    kill %1 2>/dev/null || true
-fi
+sudo systemctl is-active probe-detector --quiet && echo "[OK] probe-detector running" || \
+    (echo "[!] probe-detector failed:" && sudo journalctl -u probe-detector -n 15 --no-pager)
 
 # ── 6. Verify ────────────────────────────────────────────────
 echo ""
-echo "[6/6] Verifying..."
-sleep 2
-echo -n "  Cowrie:         "; cd ~/cowrie && source cowrie-env/bin/activate && cowrie-env/bin/cowrie status; deactivate; cd ~
+echo "[6/6] Final check..."
 echo -n "  nginx:          "; sudo systemctl is-active nginx
 echo -n "  probe-detector: "; sudo systemctl is-active probe-detector
-echo -n "  HTTP API:       "; curl -s http://localhost:8080/status | python3 -m json.tool 2>/dev/null | head -3 || echo "not responding"
+echo -n "  Cowrie SSH:     "; sudo ss -tlnp | grep -c 2222 || echo 0
+echo -n "  Cowrie Telnet:  "; sudo ss -tlnp | grep -c 2223 || echo 0
+sleep 2
+echo -n "  HTTP API:       "; curl -s http://localhost:8080/status | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK -',len(d['sessions']),'sessions')" 2>/dev/null || echo "not ready"
 
 echo ""
-echo "═══════════════════════════════════════════════════════"
-echo " SETUP COMPLETE"
-echo "═══════════════════════════════════════════════════════"
-echo " Server IP : $AWS_IP"
-echo " SSH        : ssh -i key.pem ec2-user@${AWS_IP}         (port 22)"
-echo " Dashboard  : open dashboard.html in browser"
-echo "              serve it: python3 -m http.server 3000"
-echo "              open: http://localhost:3000/dashboard.html?ip=${AWS_IP}"
-echo " HTTP test  : curl http://${AWS_IP}"
-echo " WebSocket  : ws://${AWS_IP}:8765"
-echo ""
-echo " AWS Security Group — open these ports:"
-echo "   22, 80, 2222, 2323, 8765, 8080"
-echo "═══════════════════════════════════════════════════════"
+echo "======================================================="
+echo " DONE — $AWS_IP"
+echo " Open dashboard: python3 -m http.server 3000"
+echo "   then: http://localhost:3000/dashboard.html?ip=${AWS_IP}"
+echo " Security Group ports: 22 80 2222 2223 8765 8080"
+echo "======================================================="

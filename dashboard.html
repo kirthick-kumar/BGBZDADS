@@ -9,40 +9,32 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg:#03070f;
-  --surface:#060d1a;
-  --surface2:#0a1628;
-  --border:#0e2040;
-  --border2:#172d50;
-  --cyan:#00e5ff;
-  --red:#ff1744;
-  --green:#00e676;
-  --amber:#ffab00;
-  --blue:#2979ff;
-  --text:#b0cce0;
-  --dim:#2a4060;
-  --dim2:#3a5575;
+  --bg:#03070f;--surface:#060d1a;--surface2:#0a1628;
+  --border:#0e2040;--border2:#172d50;
+  --cyan:#00e5ff;--red:#ff1744;--green:#00e676;
+  --amber:#ffab00;--blue:#2979ff;--text:#b0cce0;
+  --dim:#2a4060;--dim2:#3a5575;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;}
-body::after{
-  content:'';position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
-  background-size:48px 48px;z-index:0;
-}
-header{
-  position:relative;z-index:10;height:52px;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;border-bottom:1px solid var(--border);
-  background:rgba(3,7,15,.97);
-}
-.logo{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:var(--cyan);letter-spacing:1px;display:flex;align-items:center;gap:12px;}
-.logo-badge{font-size:10px;padding:2px 8px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:2px;color:rgba(0,229,255,.6);letter-spacing:2px;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
+  background-size:48px 48px;z-index:0;}
+header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);
+  background:rgba(3,7,15,.97);}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;
+  color:var(--cyan);letter-spacing:1px;display:flex;align-items:center;gap:12px;}
+.logo-badge{font-size:10px;padding:2px 8px;background:rgba(0,229,255,.08);
+  border:1px solid rgba(0,229,255,.2);border-radius:2px;color:rgba(0,229,255,.6);letter-spacing:2px;}
 .hdr-right{display:flex;align-items:center;gap:20px;}
 .conn-group{display:flex;align-items:center;gap:8px;}
-.conn-group input{background:var(--surface2);border:1px solid var(--border2);color:var(--cyan);padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:3px;width:180px;}
-.btn{padding:5px 14px;border-radius:3px;border:1px solid;background:transparent;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.5px;transition:all .15s;}
+.conn-group input{background:var(--surface2);border:1px solid var(--border2);color:var(--cyan);
+  padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:3px;width:180px;}
+.btn{padding:5px 14px;border-radius:3px;border:1px solid;background:transparent;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.5px;transition:all .15s;}
 .btn-cyan{color:var(--cyan);border-color:rgba(0,229,255,.3);}
 .btn-cyan:hover{background:rgba(0,229,255,.08);}
 .btn-red{color:var(--red);border-color:rgba(255,23,68,.3);}
@@ -54,8 +46,8 @@ header{
 .status-dot.alert{background:var(--red);box-shadow:0 0 10px var(--red);animation:blink .5s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
 #conn-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim2);}
-
-.stats-bar{position:relative;z-index:10;height:64px;display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border);background:var(--surface);}
+.stats-bar{position:relative;z-index:10;height:64px;display:grid;
+  grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border);background:var(--surface);}
 .stat{display:flex;flex-direction:column;justify-content:center;padding:0 20px;border-right:1px solid var(--border);}
 .stat:last-child{border-right:none;}
 .stat-n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--cyan);line-height:1;}
@@ -63,68 +55,91 @@ header{
 .stat-n.green{color:var(--green);}
 .stat-n.amber{color:var(--amber);}
 .stat-l{font-size:10px;color:var(--dim2);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
-
 .main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 500px;height:calc(100vh - 52px - 64px);}
-
 .graph-wrap{display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surface);overflow:hidden;}
-.pane-hdr{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3);flex-shrink:0;}
+.pane-hdr{height:38px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3);flex-shrink:0;}
 .pane-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);}
 .pane-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim2);}
-
-.graph-controls{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);flex-shrink:0;}
-.seg-btn{padding:3px 12px;font-size:11px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--border2);background:transparent;color:var(--dim2);cursor:pointer;border-radius:2px;transition:all .15s;}
+.graph-controls{display:flex;align-items:center;gap:10px;padding:8px 16px;
+  border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);flex-shrink:0;}
+.seg-btn{padding:3px 12px;font-size:11px;font-family:'IBM Plex Mono',monospace;
+  border:1px solid var(--border2);background:transparent;color:var(--dim2);cursor:pointer;border-radius:2px;transition:all .15s;}
 .seg-btn.active{background:rgba(0,229,255,.1);color:var(--cyan);border-color:rgba(0,229,255,.4);}
-.legend{display:flex;gap:16px;margin-left:auto;font-size:10px;font-family:'IBM Plex Mono',monospace;}
+.legend{display:flex;gap:14px;margin-left:auto;font-size:10px;font-family:'IBM Plex Mono',monospace;flex-wrap:wrap;}
 .leg-item{display:flex;align-items:center;gap:5px;color:var(--dim2);}
 .leg-dot{width:10px;height:10px;border-radius:50%;border:2px solid;}
 #graph-svg{flex:1;width:100%;}
-
 .sidebar{display:flex;flex-direction:column;overflow:hidden;}
 .sessions-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);}
 .sessions-list{overflow-y:auto;flex:1;}
 .sessions-list::-webkit-scrollbar{width:3px;}
 .sessions-list::-webkit-scrollbar-thumb{background:var(--border2);}
-
-.sess-card{padding:10px 14px;border-bottom:1px solid rgba(14,32,64,.6);border-left:3px solid transparent;transition:background .15s;animation:cardIn .25s ease;}
+.sess-card{padding:10px 14px;border-bottom:1px solid rgba(14,32,64,.6);
+  border-left:3px solid transparent;transition:background .15s;animation:cardIn .25s ease;}
 @keyframes cardIn{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:none;}}
 .sess-card.probe{border-left-color:var(--red);}
 .sess-card.normal{border-left-color:var(--green);}
 .sess-card.blocked{opacity:.45;}
 .sess-card:hover{background:rgba(0,229,255,.02);}
-.sess-ip{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--cyan);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.sess-ip{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--cyan);
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .badge{font-size:9px;padding:1px 5px;border-radius:2px;font-weight:600;letter-spacing:.8px;}
 .badge-probe{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(255,23,68,.25);}
 .badge-normal{background:rgba(0,230,118,.08);color:var(--green);border:1px solid rgba(0,230,118,.2);}
 .badge-blocked{background:rgba(50,50,50,.3);color:#555;border:1px solid #333;}
+.badge-gcn-probe{background:rgba(255,100,0,.12);color:#ff6400;border:1px solid rgba(255,100,0,.3);}
+.badge-gcn-normal{background:rgba(100,180,255,.08);color:#64b4ff;border:1px solid rgba(100,180,255,.2);}
+.badge-gcn-na{background:rgba(50,50,50,.2);color:#444;border:1px solid #333;}
 .sess-rules{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
-.rule-tag{font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);border:1px solid rgba(255,171,0,.2);color:var(--amber);border-radius:2px;font-family:'IBM Plex Mono',monospace;}
+.rule-tag{font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);
+  border:1px solid rgba(255,171,0,.2);color:var(--amber);border-radius:2px;font-family:'IBM Plex Mono',monospace;}
 .sess-meta{font-size:11px;color:var(--dim2);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;}
 .score-track{margin-top:6px;height:2px;background:var(--border);border-radius:1px;}
 .score-fill{height:100%;border-radius:1px;transition:width .6s ease;}
-.unblock-btn{margin-top:6px;font-size:10px;padding:2px 8px;border:1px solid var(--dim);background:transparent;color:var(--dim2);cursor:pointer;border-radius:2px;font-family:'IBM Plex Mono',monospace;transition:all .15s;}
+.gcn-panel{margin-top:7px;padding:6px 8px;background:rgba(0,0,0,.35);
+  border:1px solid var(--border2);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.gcn-title{color:var(--dim2);letter-spacing:1.5px;font-size:9px;margin-bottom:4px;}
+.gcn-row{display:flex;justify-content:space-between;align-items:center;margin-top:2px;}
+.gcn-lbl{color:var(--dim2);}
+.gcn-val{font-weight:600;}
+.gcn-val.probe{color:#ff6400;}
+.gcn-val.normal{color:#64b4ff;}
+.gcn-val.na{color:var(--dim);}
+.recon-bar{height:3px;background:var(--border);border-radius:1px;margin-top:5px;}
+.recon-fill{height:100%;border-radius:1px;transition:width .6s ease;
+  background:linear-gradient(90deg,var(--cyan),#ff6400);}
+.unblock-btn{margin-top:6px;font-size:10px;padding:2px 8px;border:1px solid var(--dim);
+  background:transparent;color:var(--dim2);cursor:pointer;border-radius:2px;
+  font-family:'IBM Plex Mono',monospace;transition:all .15s;}
 .unblock-btn:hover{color:var(--green);border-color:var(--green);}
-
 .log-pane{height:220px;display:flex;flex-direction:column;flex-shrink:0;}
 .log-list{overflow-y:auto;flex:1;}
 .log-list::-webkit-scrollbar{width:3px;}
 .log-list::-webkit-scrollbar-thumb{background:var(--border2);}
-.log-row{display:flex;align-items:baseline;gap:8px;padding:3px 14px;border-bottom:1px solid rgba(14,32,64,.4);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim2);animation:fadeIn .15s;}
+.log-row{display:flex;align-items:baseline;gap:8px;padding:3px 14px;
+  border-bottom:1px solid rgba(14,32,64,.4);font-family:'IBM Plex Mono',monospace;
+  font-size:10px;color:var(--dim2);animation:fadeIn .15s;}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .log-row.probe{color:rgba(255,80,100,.7);}
 .log-row.normal{color:rgba(176,204,224,.55);}
 .log-ts{color:var(--dim);flex-shrink:0;width:62px;}
-.log-ip{color:var(--cyan);flex-shrink:0;width:105px;overflow:hidden;text-overflow:ellipsis;}
+.log-ip{color:var(--cyan);flex-shrink:0;width:120px;overflow:hidden;text-overflow:ellipsis;}
 .log-svc{color:var(--amber);flex-shrink:0;width:52px;}
-
-.alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 20px;background:rgba(255,23,68,.12);border-bottom:1.5px solid var(--red);color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;display:flex;align-items:center;gap:16px;animation:slideDown .25s ease;}
+.log-gcn-probe{color:#ff6400;}
+.log-gcn-normal{color:#64b4ff;}
+.alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 20px;
+  background:rgba(255,23,68,.12);border-bottom:1.5px solid var(--red);color:var(--red);
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;
+  display:flex;align-items:center;gap:16px;animation:slideDown .25s ease;}
 @keyframes slideDown{from{transform:translateY(-100%);opacity:0;}to{transform:none;opacity:1;}}
-
-/* waiting screen */
-.waiting{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:5;}
+.waiting{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;z-index:5;}
 .waiting-title{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--dim2);letter-spacing:2px;}
 .waiting-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);animation:blink 1.5s infinite;}
-
-.tt{position:fixed;background:var(--surface2);border:1px solid var(--border2);padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-radius:4px;pointer-events:none;z-index:100;line-height:1.7;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.tt{position:fixed;background:var(--surface2);border:1px solid var(--border2);padding:8px 12px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;border-radius:4px;pointer-events:none;
+  z-index:100;line-height:1.7;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.4);}
 .tt-head{color:var(--cyan);font-weight:600;margin-bottom:2px;}
 </style>
 </head>
@@ -151,14 +166,14 @@ header{
   <div class="stat"><div class="stat-n red"   id="sn-probes">0</div><div class="stat-l">Probes</div></div>
   <div class="stat"><div class="stat-n green" id="sn-normal">0</div><div class="stat-l">Normal</div></div>
   <div class="stat"><div class="stat-n amber" id="sn-blocked">0</div><div class="stat-l">Blocked</div></div>
-  <div class="stat"><div class="stat-n" id="sn-ports">0</div><div class="stat-l">Max Ports Scanned</div></div>
+  <div class="stat"><div class="stat-n" id="sn-ports">0</div><div class="stat-l">Max Ports</div></div>
   <div class="stat"><div class="stat-n" id="sn-events">0</div><div class="stat-l">Events</div></div>
 </div>
 
 <div class="main">
   <div class="graph-wrap">
     <div class="pane-hdr">
-      <span class="pane-title">Bipartite Graph — Host ↔ Service</span>
+      <span class="pane-title">Bipartite Graph — Host / Service</span>
       <span class="pane-meta" id="graph-meta"></span>
     </div>
     <div class="graph-controls">
@@ -169,7 +184,7 @@ header{
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--cyan);background:rgba(0,229,255,.08);border-radius:3px"></div>SSH</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--blue);background:rgba(24, 26, 114, 0.08);border-radius:3px"></div>HTTP</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.08);border-radius:3px"></div>HTTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#64b4ff;background:rgba(100,180,255,.08);border-radius:3px"></div>HTTPS</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1);border-radius:3px"></div>FTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#ff6400;background:rgba(255,100,0,.1);border-radius:3px"></div>Telnet</div>
@@ -211,62 +226,55 @@ header{
 <div class="tt" id="tt" style="display:none"></div>
 
 <script>
-// ══════════════════════════════════════════════
-// STATE — no demo mode, all real data only
-// ══════════════════════════════════════════════
-let ws        = null;
-let sessions  = [];
-let events    = [];
-let graphData = {nodes:[], edges:[]};
-let rules     = {};
-let graphMode = 'all';
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+var ws        = null;
+var sessions  = [];
+var events    = [];
+var graphData = {nodes:[], edges:[]};
+var graphMode = 'all';
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // WEBSOCKET
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function connect(){
-  const ip = document.getElementById('srv-ip').value.trim();
+  var ip = document.getElementById('srv-ip').value.trim();
   if(!ip){ alert('Enter your AWS IP first'); return; }
   if(ws){ ws.close(); }
   setDot('connecting');
-  ws = new WebSocket(`ws://${ip}:8765`);
-  ws.onopen  = () => {
-    setDot('live');
-    document.getElementById('waiting-screen').style.display = 'none';
-  };
-  ws.onclose = () => { setDot('off'); };
-  ws.onerror = () => setDot('off');
-  ws.onmessage = e => handleMsg(JSON.parse(e.data));
+  ws = new WebSocket('ws://'+ip+':8765');
+  ws.onopen  = function(){ setDot('live'); document.getElementById('waiting-screen').style.display='none'; };
+  ws.onclose = function(){ setDot('off'); };
+  ws.onerror = function(){ setDot('off'); };
+  ws.onmessage = function(e){ handleMsg(JSON.parse(e.data)); };
 }
 
 function send(obj){ if(ws && ws.readyState===1) ws.send(JSON.stringify(obj)); }
 
 function setDot(state){
-  const d = document.getElementById('dot');
-  const l = document.getElementById('conn-label');
-  d.className = 'status-dot';
-  if(state==='live')        { d.classList.add('live');  l.textContent='CONNECTED';    }
-  else if(state==='alert')  { d.classList.add('alert'); l.textContent='ALERT';        }
+  var d=document.getElementById('dot');
+  var l=document.getElementById('conn-label');
+  d.className='status-dot';
+  if(state==='live')        { d.classList.add('live');  l.textContent='CONNECTED'; }
+  else if(state==='alert')  { d.classList.add('alert'); l.textContent='ALERT'; }
   else if(state==='connecting'){ l.textContent='CONNECTING…'; }
-  else                      { l.textContent='OFFLINE';  }
+  else                      { l.textContent='OFFLINE'; }
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // MESSAGE HANDLER
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function handleMsg(msg){
-  if(msg.type === 'reset'){
-    sessions=[]; events=[]; graphData={nodes:[],edges:[]};
-  }
+  if(msg.type==='reset'){ sessions=[]; events=[]; graphData={nodes:[],edges:[]}; }
   if(msg.graph)    graphData = msg.graph;
   if(msg.sessions) sessions  = msg.sessions;
   if(msg.events)   events    = msg.events;
-  if(msg.rules)    { rules = msg.rules; }
 
-  if(msg.label === 'probe' || (msg.rules_hit && msg.rules_hit.length)){
-    flashAlert(msg.src_ip, msg.rules_hit || [], msg.score);
+  if(msg.label==='probe' || (msg.rules_hit && msg.rules_hit.length) || msg.gcn_prediction==='PROBE'){
+    flashAlert(msg.src_ip, msg.rules_hit||[], msg.score, msg.gcn_prediction, msg.gcn_confidence);
     setDot('alert');
-    setTimeout(()=>setDot('live'), 3000);
+    setTimeout(function(){ setDot('live'); }, 3000);
   }
 
   updateStats();
@@ -275,184 +283,222 @@ function handleMsg(msg){
   renderGraph();
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // STATS
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function updateStats(){
-  const probes  = sessions.filter(s=>s.label==='probe').length;
-  const normal  = sessions.filter(s=>s.label==='normal').length;
-  const blocked = sessions.filter(s=>s.blocked).length;
-  const maxPorts= sessions.reduce((m,s)=>Math.max(m,s.ports_scanned||0),0);
+  var probes  = sessions.filter(function(s){ return s.label==='probe'; }).length;
+  var normal  = sessions.filter(function(s){ return s.label==='normal'; }).length;
+  var blocked = sessions.filter(function(s){ return s.blocked; }).length;
+  var maxP    = sessions.reduce(function(m,s){ return Math.max(m,s.ports_scanned||0); },0);
   document.getElementById('sn-total').textContent   = sessions.length;
   document.getElementById('sn-probes').textContent  = probes;
   document.getElementById('sn-normal').textContent  = normal;
   document.getElementById('sn-blocked').textContent = blocked;
-  document.getElementById('sn-ports').textContent   = maxPorts;
+  document.getElementById('sn-ports').textContent   = maxP;
   document.getElementById('sn-events').textContent  = events.length;
-  document.getElementById('sess-meta').textContent  = `${sessions.length} sessions`;
-  document.getElementById('log-meta').textContent   = `${events.length} events`;
+  document.getElementById('sess-meta').textContent  = sessions.length+' sessions';
+  document.getElementById('log-meta').textContent   = events.length+' events';
 }
 
-// ══════════════════════════════════════════════
-// SESSIONS
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+// SESSION CARDS
+// ═══════════════════════════════════════════
 function renderSessions(){
   if(!sessions.length){
     document.getElementById('sess-list').innerHTML =
-      '<div style="padding:20px 14px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--dim2);">No sessions yet — run an attack or access the HTTP service</div>';
+      '<div style="padding:20px 14px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--dim2);">No sessions yet</div>';
     return;
   }
-  const sorted = [...sessions].sort((a,b)=>b.score-a.score);
-  document.getElementById('sess-list').innerHTML = sorted.map(s=>{
-    const pct   = Math.min(s.score * 100, 100);
-    const color = s.label==='probe' ? 'var(--red)' : 'var(--green)';
-    const rules = (s.rules||[]).map(r=>`<span class="rule-tag">${r}</span>`).join('');
-    const svcs  = (s.services||[]).join(' · ') || '—';
-    return `
-    <div class="sess-card ${s.label}${s.blocked?' blocked':''}">
-      <div class="sess-ip">
-        ${s.ip}
-        <span class="badge badge-${s.label}">${s.label.toUpperCase()}</span>
-        ${s.blocked?'<span class="badge badge-blocked">BLOCKED</span>':''}
-      </div>
-      ${rules?`<div class="sess-rules">${rules}</div>`:''}
-      <div class="sess-meta">
-        <span>svcs: ${svcs}</span>
-        <span>ports: ${s.ports_scanned||0}</span>
-        <span>fails: ${s.failed_logins||0}</span>
-        <span>score: ${s.score.toFixed(3)}</span>
-      </div>
-      <div class="score-track">
-        <div class="score-fill" style="width:${pct}%;background:${color}"></div>
-      </div>
-      ${s.blocked?`<button class="unblock-btn" onclick="doUnblock('${s.ip}')">↩ Unblock</button>`:''}
-    </div>`;
+  var sorted = sessions.slice().sort(function(a,b){ return b.score-a.score; });
+  document.getElementById('sess-list').innerHTML = sorted.map(function(s){
+    var pct   = Math.min(s.score*100,100);
+    var color = s.label==='probe'?'var(--red)':'var(--green)';
+    var ruleTags = (s.rules||[]).map(function(r){
+      return '<span class="rule-tag">'+r+'</span>';
+    }).join('');
+    var svcs = (s.services||[]).join(' · ')||'—';
+
+    // GCN panel
+    var gcnPred = s.gcn_prediction||'N/A';
+    var gcnCls  = gcnPred==='PROBE'?'probe':gcnPred==='NORMAL'?'normal':'na';
+    var gcnConf = gcnPred!=='N/A'?((s.gcn_confidence||0)*100).toFixed(1)+'%':'—';
+    var gcnErr  = gcnPred!=='N/A'?(s.reconstruction_error||0).toFixed(5):'—';
+    var gcnPct  = Math.min((s.gcn_score||0)*100,100).toFixed(0);
+    var gcnBadgeCls = gcnPred==='PROBE'?'badge-gcn-probe':gcnPred==='NORMAL'?'badge-gcn-normal':'badge-gcn-na';
+    var gcnPanel = '<div class="gcn-panel">'
+      +'<div class="gcn-title">GCN MODEL PREDICTION</div>'
+      +'<div class="gcn-row">'
+      +'<span class="gcn-lbl">prediction</span>'
+      +'<span class="badge '+gcnBadgeCls+'">'+gcnPred+'</span>'
+      +'</div>'
+      +'<div class="gcn-row">'
+      +'<span class="gcn-lbl">confidence</span>'
+      +'<span class="gcn-val '+gcnCls+'">'+gcnConf+'</span>'
+      +'</div>'
+      +'<div class="gcn-row">'
+      +'<span class="gcn-lbl">recon error</span>'
+      +'<span class="gcn-val '+gcnCls+'">'+gcnErr+'</span>'
+      +'</div>'
+      +'<div class="recon-bar"><div class="recon-fill" style="width:'+gcnPct+'%"></div></div>'
+      +'</div>';
+
+    var unblockBtn = s.blocked
+      ? '<button class="unblock-btn" onclick="doUnblock(\''+s.ip+'\')">↩ Unblock</button>'
+      : '';
+
+    return '<div class="sess-card '+s.label+(s.blocked?' blocked':'')+'">'
+      +'<div class="sess-ip">'+s.ip
+      +'<span class="badge badge-'+s.label+'">'+s.label.toUpperCase()+'</span>'
+      +(s.blocked?'<span class="badge badge-blocked">BLOCKED</span>':'')
+      +'</div>'
+      +(ruleTags?'<div class="sess-rules">'+ruleTags+'</div>':'')
+      +'<div class="sess-meta">'
+      +'<span>svcs:'+svcs+'</span>'
+      +'<span>ports:'+( s.ports_scanned||0)+'</span>'
+      +'<span>fails:'+(s.failed_logins||0)+'</span>'
+      +'<span>score:'+s.score.toFixed(3)+'</span>'
+      +'</div>'
+      +'<div class="score-track"><div class="score-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'
+      +gcnPanel
+      +unblockBtn
+      +'</div>';
   }).join('');
 }
 
-function doUnblock(ip){ send({action:'unblock', ip}); }
+function doUnblock(ip){ send({action:'unblock', ip:ip}); }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // EVENT LOG
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function renderLog(){
-  const list = [...events].reverse().slice(0,150);
-  document.getElementById('log-list').innerHTML = list.map(e=>{
-    const ts  = new Date(e.timestamp).toLocaleTimeString('en',{hour12:false});
-    return `<div class="log-row ${e.label||'normal'}">
-      <span class="log-ts">${ts}</span>
-      <span class="log-ip">${e.src_ip}</span>
-      <span class="log-svc">${(e.service||'?').slice(0,8)}</span>
-      <span>${e.eventid||''}</span>
-    </div>`;
+  var list = events.slice().reverse().slice(0,150);
+  document.getElementById('log-list').innerHTML = list.map(function(e){
+    var ts  = new Date(e.timestamp).toLocaleTimeString('en',{hour12:false});
+    var gcnSpan = '';
+    if(e.gcn_prediction && e.gcn_prediction!=='N/A'){
+      var cls = e.gcn_prediction==='PROBE'?'log-gcn-probe':'log-gcn-normal';
+      gcnSpan = ' <span class="'+cls+'">[GCN:'+e.gcn_prediction+']</span>';
+    }
+    return '<div class="log-row '+(e.label||'normal')+'">'
+      +'<span class="log-ts">'+ts+'</span>'
+      +'<span class="log-ip">'+e.src_ip+'</span>'
+      +'<span class="log-svc">'+((e.service||'?').slice(0,8))+'</span>'
+      +'<span>'+(e.eventid||'')+gcnSpan+'</span>'
+      +'</div>';
   }).join('');
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // GRAPH
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function setMode(mode, el){
   graphMode = mode;
-  document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.seg-btn').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active');
   renderGraph();
 }
 
 function renderGraph(){
-  const svg  = document.getElementById('graph-svg');
-  const W    = svg.clientWidth  || 700;
-  const H    = svg.clientHeight || 450;
+  var svg = document.getElementById('graph-svg');
+  var W   = svg.clientWidth  || 700;
+  var H   = svg.clientHeight || 450;
 
-  let nodes = (graphData.nodes||[]);
-  let edges = (graphData.edges||[]);
+  var nodes = (graphData.nodes||[]).slice();
+  var edges = (graphData.edges||[]).slice();
 
-  if(graphMode !== 'all'){
-    const keepHosts = new Set(
-      nodes.filter(n=>n.type==='host' && n.classification===graphMode).map(n=>n.id)
-    );
-    edges = edges.filter(e=> keepHosts.has(e.source));
-    const seen = new Set([...edges.map(e=>e.source), ...edges.map(e=>e.target)]);
-    nodes = nodes.filter(n=> seen.has(n.id) || keepHosts.has(n.id));
+  if(graphMode!=='all'){
+    var keepHosts = {};
+    nodes.forEach(function(n){
+      if(n.type==='host' && n.classification===graphMode) keepHosts[n.id]=true;
+    });
+    edges = edges.filter(function(e){ return keepHosts[e.source]; });
+    var seen = {};
+    edges.forEach(function(e){ seen[e.source]=true; seen[e.target]=true; });
+    nodes = nodes.filter(function(n){ return seen[n.id]||keepHosts[n.id]; });
   }
 
-  const hostNodes    = nodes.filter(n=>n.type==='host');
-  const serviceNodes = nodes.filter(n=>n.type==='service');
-  const portNodes    = nodes.filter(n=>n.type==='portrange');
-  const rightNodes   = [...serviceNodes, ...portNodes];
+  var hostNodes    = nodes.filter(function(n){ return n.type==='host'; });
+  var serviceNodes = nodes.filter(function(n){ return n.type==='service'; });
+  var portNodes    = nodes.filter(function(n){ return n.type==='portrange'; });
+  var rightNodes   = serviceNodes.concat(portNodes);
 
   document.getElementById('graph-meta').textContent =
-    `${hostNodes.length} hosts · ${serviceNodes.length} services · ${portNodes.length} port ranges · ${edges.length} edges`;
+    hostNodes.length+' hosts · '+serviceNodes.length+' services · '+portNodes.length+' port ranges · '+edges.length+' edges';
 
-  const pad = 80;
-  const nodeMap = {};
+  var pad = 80;
+  var nodeMap = {};
+  function posY(i,total){ return total===1?H/2:pad+i*(H-pad*2)/Math.max(total-1,1); }
 
-  const posY = (i,total) => total===1 ? H/2 : pad + i*(H-pad*2)/Math.max(total-1,1);
+  hostNodes.forEach(function(n,i){ n.x=pad; n.y=posY(i,hostNodes.length); nodeMap[n.id]=n; });
+  rightNodes.forEach(function(n,i){ n.x=W-pad; n.y=posY(i,rightNodes.length); nodeMap[n.id]=n; });
 
-  hostNodes.forEach((n,i)=>{ n.x=pad; n.y=posY(i,hostNodes.length); nodeMap[n.id]=n; });
-  rightNodes.forEach((n,i)=>{ n.x=W-pad; n.y=posY(i,rightNodes.length); nodeMap[n.id]=n; });
+  var resolvedEdges = edges.map(function(e){
+    return {src:nodeMap[e.source], tgt:nodeMap[e.target], source:e.source, target:e.target};
+  }).filter(function(e){ return e.src&&e.tgt; });
 
-  const resolvedEdges = edges
-    .map(e=>({...e, src:nodeMap[e.source], tgt:nodeMap[e.target]}))
-    .filter(e=>e.src && e.tgt);
-
-  const d3svg = d3.select('#graph-svg');
+  var d3svg = d3.select('#graph-svg');
   d3svg.selectAll('*').remove();
 
-  const defs = d3svg.append('defs');
-  const f = defs.append('filter').attr('id','glow');
+  var defs = d3svg.append('defs');
+  var f = defs.append('filter').attr('id','glow');
   f.append('feGaussianBlur').attr('stdDeviation','4').attr('result','coloredBlur');
-  const m = f.append('feMerge');
+  var m = f.append('feMerge');
   m.append('feMergeNode').attr('in','coloredBlur');
   m.append('feMergeNode').attr('in','SourceGraphic');
 
-  const g = d3svg.append('g');
+  var g = d3svg.append('g');
 
-  // Column labels
-  if(hostNodes.length) g.append('text').attr('x',pad).attr('y',22).attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size','9px').attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('HOSTS');
+  if(hostNodes.length)  g.append('text').attr('x',pad).attr('y',22).attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size','9px').attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('HOSTS');
   if(rightNodes.length) g.append('text').attr('x',W-pad).attr('y',22).attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size','9px').attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('SERVICES');
 
   // Edges
   g.selectAll('.edge').data(resolvedEdges).enter().append('path')
     .attr('fill','none')
-    .attr('d', e=>{
-      const mx=(e.src.x+e.tgt.x)/2;
-      return `M${e.src.x},${e.src.y} C${mx},${e.src.y} ${mx},${e.tgt.y} ${e.tgt.x},${e.tgt.y}`;
+    .attr('d',function(e){
+      var mx=(e.src.x+e.tgt.x)/2;
+      return 'M'+e.src.x+','+e.src.y+' C'+mx+','+e.src.y+' '+mx+','+e.tgt.y+' '+e.tgt.x+','+e.tgt.y;
     })
-    .attr('stroke', e=>{
-      const sn=nodeMap[e.source];
-      return sn?.classification==='probe'?'rgba(255,23,68,.5)':'rgba(0,229,255,.2)';
+    .attr('stroke',function(e){
+      var sn=nodeMap[e.source];
+      return sn&&sn.classification==='probe'?'rgba(255,23,68,.5)':'rgba(0,229,255,.2)';
     })
-    .attr('stroke-width', e=> nodeMap[e.source]?.classification==='probe'?2:1.2);
+    .attr('stroke-width',function(e){
+      var sn=nodeMap[e.source];
+      return sn&&sn.classification==='probe'?2:1.2;
+    });
+
+  // Service colors
+  var svcStroke = {ssh:'var(--cyan)',http:'var(--green)',https:'#64b4ff',ftp:'var(--amber)',telnet:'#ff6400',mysql:'#c864ff',smtp:'#ffc800'};
+  var svcFill   = {ssh:'rgba(0,229,255,.08)',http:'rgba(0,230,118,.08)',https:'rgba(100,180,255,.08)',ftp:'rgba(255,171,0,.10)',telnet:'rgba(255,100,0,.10)',mysql:'rgba(200,100,255,.08)',smtp:'rgba(255,200,0,.08)'};
+  var svcColors = {ssh:'rgba(0,229,255,.85)',http:'rgba(0,230,118,.8)',https:'rgba(100,180,255,.85)',ftp:'rgba(255,171,0,.85)',telnet:'rgba(255,100,0,.85)',mysql:'rgba(200,100,255,.8)',smtp:'rgba(255,200,0,.8)'};
 
   // Nodes
-  const ng = g.selectAll('.node').data(nodes).enter().append('g')
-    .attr('transform', n=>`translate(${n.x},${n.y})`)
+  var ng = g.selectAll('.node').data(nodes).enter().append('g')
+    .attr('transform',function(n){ return 'translate('+n.x+','+n.y+')'; })
     .style('cursor','pointer')
-    .on('mouseover',(ev,d)=>showTT(ev,d))
-    .on('mouseout',()=>document.getElementById('tt').style.display='none');
+    .on('mouseover',function(ev,d){ showTT(ev,d); })
+    .on('mouseout',function(){ document.getElementById('tt').style.display='none'; });
 
   ng.each(function(d){
-    const el=d3.select(this);
+    var el=d3.select(this);
     if(d.type==='host'){
       el.append('circle').attr('r',15)
-        .attr('fill', d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)')
-        .attr('stroke', d.blocked?'#333':d.classification==='probe'?'var(--red)':'var(--green)')
+        .attr('fill',d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)')
+        .attr('stroke',d.blocked?'#333':d.classification==='probe'?'var(--red)':'var(--green)')
         .attr('stroke-width',2)
-        .attr('filter', d.classification==='probe'&&!d.blocked?'url(#glow)':null);
+        .attr('filter',d.classification==='probe'&&!d.blocked?'url(#glow)':null);
       if(d.classification==='probe'&&!d.blocked){
         el.append('circle').attr('r',15).attr('fill','none')
           .attr('stroke','rgba(255,23,68,.3)').attr('stroke-width',1.5)
           .append('animate').attr('attributeName','r').attr('values','15;26;15').attr('dur','1.8s').attr('repeatCount','indefinite');
       }
-      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline', d=>d.type==='host'?'hanging':'middle').attr('font-size','14px').attr('fill','#444').text('×');
+      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','14px').attr('fill','#444').text('×');
     }
     else if(d.type==='service'){
-      const svcStroke = {ssh:'var(--cyan)', http:'var(--blue)', https:'#64b4ff', ftp:'var(--amber)', telnet:'#ff6400', mysql:'#c864ff', smtp:'#ffc800'};
-      const svcFill   = {ssh:'rgba(0,229,255,.08)', http:'rgba(100,180,255,.08)', https:'rgba(100,180,255,.08)', ftp:'rgba(255,171,0,.10)', telnet:'rgba(255,100,0,.10)', mysql:'rgba(200,100,255,.08)', smtp:'rgba(255,200,0,.08)'};
-      const stroke = svcStroke[d.label] || 'var(--amber)';
-      const fill   = svcFill[d.label]   || 'rgba(255,171,0,.08)';
-      el.append('polygon').attr('points','0,-12 12,0 0,12 -12,0')
-        .attr('fill', fill).attr('stroke', stroke).attr('stroke-width',1.5);
+      var sk=svcStroke[d.label]||'var(--amber)';
+      var sf=svcFill[d.label]||'rgba(255,171,0,.08)';
+      el.append('polygon').attr('points','0,-12 12,0 0,12 -12,0').attr('fill',sf).attr('stroke',sk).attr('stroke-width',1.5);
     }
     else{
       el.append('rect').attr('x',-11).attr('y',-11).attr('width',22).attr('height',22).attr('rx',2)
@@ -460,39 +506,37 @@ function renderGraph(){
     }
   });
 
-  // Labels
+  // Labels — IP below host node, service name to right
   ng.append('text')
-    .attr('text-anchor', d=>d.type==='host'?'middle':'start')
-    .attr('x', d=>d.type==='host'?0:18)
-    .attr('dominant-baseline', d=>d.type==='host'?'hanging':'middle')
+    .attr('text-anchor',function(d){ return d.type==='host'?'middle':'start'; })
+    .attr('x',function(d){ return d.type==='host'?0:18; })
+    .attr('y',function(d){ return d.type==='host'?20:0; })
+    .attr('dominant-baseline',function(d){ return d.type==='host'?'hanging':'middle'; })
     .attr('font-family','IBM Plex Mono').attr('font-size','11px')
-    .attr('fill', d=>{
+    .attr('fill',function(d){
       if(d.blocked) return '#444';
       if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)';
       if(d.type==='portrange') return 'rgba(41,121,255,.8)';
-      // Service-specific colors
-      const svcColors = {ssh:'rgba(0,229,255,.85)', http:'rgba(100,180,255,.85)', https:'rgba(100,180,255,.85)', ftp:'rgba(255,171,0,.85)', telnet:'rgba(255,100,0,.85)', mysql:'rgba(200,100,255,.8)', smtp:'rgba(255,200,0,.8)'};
-      return svcColors[d.label] || 'rgba(255,171,0,.8)';
+      return svcColors[d.label]||'rgba(255,171,0,.8)';
     })
-    .attr('y', d=>d.type==='host'?20:0)
-    .text(d=>d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label);
+    .text(function(d){ return d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label; });
 
-  // Score under host label
-  ng.filter(d=>d.type==='host'&&d.score>0)
+  // Score below IP
+  ng.filter(function(d){ return d.type==='host'&&d.score>0; })
     .append('text').attr('text-anchor','middle').attr('x',0).attr('y',33)
     .attr('font-family','IBM Plex Mono').attr('font-size','9px')
     .attr('fill','rgba(0,229,255,.35)')
-    .text(d=>`${(d.score*100).toFixed(0)}%`);
+    .text(function(d){ return (d.score*100).toFixed(0)+'%'; });
 }
 
 function showTT(ev,d){
-  const t=document.getElementById('tt');
-  let html=`<div class="tt-head">${d.label}</div>`;
+  var t=document.getElementById('tt');
+  var html='<div class="tt-head">'+d.label+'</div>';
   if(d.type==='host'){
-    html+=`Status: ${d.classification?.toUpperCase()||'?'}<br>Score: ${d.score||0}<br>Events: ${d.events||0}<br>Blocked: ${d.blocked?'YES':'NO'}`;
-    if(d.rules?.length) html+=`<br>Rules: ${d.rules.join(', ')}`;
+    html+='Status: '+(d.classification||'?').toUpperCase()+'<br>Score: '+(d.score||0)+'<br>Events: '+(d.events||0)+'<br>Blocked: '+(d.blocked?'YES':'NO');
+    if(d.rules&&d.rules.length) html+='<br>Rules: '+d.rules.join(', ');
   } else {
-    html+=`Type: ${d.type.toUpperCase()}<br>Name: ${d.label}`;
+    html+='Type: '+d.type.toUpperCase()+'<br>Service: '+d.label;
   }
   t.innerHTML=html;
   t.style.display='block';
@@ -500,43 +544,47 @@ function showTT(ev,d){
   t.style.top=(ev.clientY-10)+'px';
 }
 
-// ══════════════════════════════════════════════
-// ALERT
-// ══════════════════════════════════════════════
-function flashAlert(ip, rulesHit, score){
-  const old=document.querySelector('.alert-banner');
+// ═══════════════════════════════════════════
+// ALERT BANNER
+// ═══════════════════════════════════════════
+function flashAlert(ip, rulesHit, score, gcnPred, gcnConf){
+  var old=document.querySelector('.alert-banner');
   if(old) old.remove();
-  const el=document.createElement('div');
+  var el=document.createElement('div');
   el.className='alert-banner';
-  el.innerHTML=`<span style="font-size:14px">⚠</span> PROBE DETECTED — <span style="color:var(--red)">${ip}</span> &nbsp;|&nbsp; ${(rulesHit||[]).join(' + ')} &nbsp;|&nbsp; score: ${(score||0).toFixed(3)} &nbsp;|&nbsp; IP AUTO-BLOCKED`;
+  var gcnStr = gcnPred==='PROBE' ? ' | GCN: PROBE ('+((gcnConf||0)*100).toFixed(0)+'% conf)' : '';
+  el.innerHTML='<span style="font-size:14px">⚠</span> PROBE DETECTED — '
+    +'<span style="color:var(--red)">'+ip+'</span>'
+    +(rulesHit&&rulesHit.length?' | '+(rulesHit||[]).join(' + '):'')
+    +gcnStr
+    +' | score: '+(score||0).toFixed(3);
   document.body.prepend(el);
-  setTimeout(()=>el.remove(),5000);
+  setTimeout(function(){ el.remove(); },5000);
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // CONTROLS
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function resetAll(){
-  if(!confirm('Reset all sessions and unblock all IPs?')) return;
+  if(!confirm('Reset all sessions?')) return;
   send({action:'reset'});
-  const ip=document.getElementById('srv-ip').value.trim();
-  fetch(`http://${ip}:8080/reset`,{method:'POST'}).catch(()=>{});
+  var ip=document.getElementById('srv-ip').value.trim();
+  fetch('http://'+ip+':8080/reset',{method:'POST'}).catch(function(){});
   sessions=[]; events=[]; graphData={nodes:[],edges:[]};
   updateStats(); renderSessions(); renderLog(); renderGraph();
 }
 
 function exportLog(){
-  const blob=new Blob([JSON.stringify({sessions,events},null,2)],{type:'application/json'});
-  const a=document.createElement('a');
+  var blob=new Blob([JSON.stringify({sessions:sessions,events:events},null,2)],{type:'application/json'});
+  var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`probe_log_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+  a.download='probe_log_'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.json';
   a.click();
 }
 
 window.addEventListener('resize',renderGraph);
 
-// Auto-connect if IP in URL
-const urlIP=new URLSearchParams(location.search).get('ip');
+var urlIP=new URLSearchParams(location.search).get('ip');
 if(urlIP){ document.getElementById('srv-ip').value=urlIP; connect(); }
 </script>
 </body>
