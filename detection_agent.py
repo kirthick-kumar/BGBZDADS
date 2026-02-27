@@ -45,7 +45,7 @@ ENCODER_PATH = os.getenv("ENCODER_PATH","encoders.pkl")
 WS_PORT    = int(os.getenv("WS_PORT",  "8765"))
 HTTP_PORT  = int(os.getenv("HTTP_PORT","8080"))
 HIDDEN_DIM = 128
-IN_CHANNELS= 38
+IN_CHANNELS= 41
 DEVICE     = torch.device("cpu")
 
 # ─────────────────────────────────────────────────────────
@@ -280,7 +280,11 @@ def extract_features(ip: str, service: str, event_type: str,
         dst_host_srv_serror_rate,    # 38 — only 38 needed but keep aligned
     ]
 
-    return np.array(features[:38], dtype=np.float32)
+    # Pad to 41 features to match trained model
+    # Extra 3 = dst_host_rerror_rate, dst_host_srv_rerror_rate, padding
+    while len(features) < 41:
+        features.append(0.0)
+    return np.array(features[:41], dtype=np.float32)
 
 def run_gcn_inference(ip: str, service: str, event_type: str,
                       dst_port: int, st: dict) -> dict:
@@ -301,8 +305,8 @@ def run_gcn_inference(ip: str, service: str, event_type: str,
         scaled = scaler.transform(raw_features.reshape(1, -1))  # (1, 38)
 
         # Build minimal bipartite graph: 1 host + 1 service node
-        host_feat = torch.tensor(scaled, dtype=torch.float32)             # (1, 38)
-        svc_feat  = torch.zeros((1, 38), dtype=torch.float32)             # (1, 38)
+        host_feat = torch.tensor(scaled, dtype=torch.float32)             # (1, 41)
+        svc_feat  = torch.zeros((1, 41), dtype=torch.float32)             # (1, 41)
         x         = torch.cat([host_feat, svc_feat], dim=0).to(DEVICE)   # (2, 38)
 
         # Edge: host(0) ↔ service(1)
