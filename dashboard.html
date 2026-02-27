@@ -64,7 +64,7 @@ header{
 .stat-n.amber{color:var(--amber);}
 .stat-l{font-size:10px;color:var(--dim2);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
 
-.main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 52px - 64px);}
+.main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 500px;height:calc(100vh - 52px - 64px);}
 
 .graph-wrap{display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surface);overflow:hidden;}
 .pane-hdr{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3);flex-shrink:0;}
@@ -168,7 +168,11 @@ header{
       <div class="legend">
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1);border-radius:3px"></div>Service</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--cyan);background:rgba(0,229,255,.08);border-radius:3px"></div>SSH</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.08);border-radius:3px"></div>HTTP</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#64b4ff;background:rgba(100,180,255,.08);border-radius:3px"></div>HTTPS</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1);border-radius:3px"></div>FTP</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#ff6400;background:rgba(255,100,0,.1);border-radius:3px"></div>Telnet</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--blue);background:rgba(41,121,255,.1);border-radius:0"></div>Port Range</div>
       </div>
     </div>
@@ -440,11 +444,15 @@ function renderGraph(){
           .attr('stroke','rgba(255,23,68,.3)').attr('stroke-width',1.5)
           .append('animate').attr('attributeName','r').attr('values','15;26;15').attr('dur','1.8s').attr('repeatCount','indefinite');
       }
-      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','14px').attr('fill','#444').text('×');
+      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline', d=>d.type==='host'?'hanging':'middle').attr('font-size','14px').attr('fill','#444').text('×');
     }
     else if(d.type==='service'){
+      const svcStroke = {ssh:'var(--cyan)', http:'var(--green)', https:'#64b4ff', ftp:'var(--amber)', telnet:'#ff6400', mysql:'#c864ff', smtp:'#ffc800'};
+      const svcFill   = {ssh:'rgba(0,229,255,.08)', http:'rgba(0,230,118,.08)', https:'rgba(100,180,255,.08)', ftp:'rgba(255,171,0,.10)', telnet:'rgba(255,100,0,.10)', mysql:'rgba(200,100,255,.08)', smtp:'rgba(255,200,0,.08)'};
+      const stroke = svcStroke[d.label] || 'var(--amber)';
+      const fill   = svcFill[d.label]   || 'rgba(255,171,0,.08)';
       el.append('polygon').attr('points','0,-12 12,0 0,12 -12,0')
-        .attr('fill','rgba(255,171,0,.08)').attr('stroke','var(--amber)').attr('stroke-width',1.5);
+        .attr('fill', fill).attr('stroke', stroke).attr('stroke-width',1.5);
     }
     else{
       el.append('rect').attr('x',-11).attr('y',-11).attr('width',22).attr('height',22).attr('rx',2)
@@ -454,21 +462,24 @@ function renderGraph(){
 
   // Labels
   ng.append('text')
-    .attr('text-anchor', d=>d.type==='host'?'end':'start')
-    .attr('x', d=>d.type==='host'?-20:18)
-    .attr('dominant-baseline','middle')
+    .attr('text-anchor', d=>d.type==='host'?'middle':'start')
+    .attr('x', d=>d.type==='host'?0:18)
+    .attr('dominant-baseline', d=>d.type==='host'?'hanging':'middle')
     .attr('font-family','IBM Plex Mono').attr('font-size','11px')
     .attr('fill', d=>{
       if(d.blocked) return '#444';
       if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)';
       if(d.type==='portrange') return 'rgba(41,121,255,.8)';
-      return 'rgba(255,171,0,.8)';
+      // Service-specific colors
+      const svcColors = {ssh:'rgba(0,229,255,.85)', http:'rgba(0,230,118,.8)', https:'rgba(100,180,255,.85)', ftp:'rgba(255,171,0,.85)', telnet:'rgba(255,100,0,.85)', mysql:'rgba(200,100,255,.8)', smtp:'rgba(255,200,0,.8)'};
+      return svcColors[d.label] || 'rgba(255,171,0,.8)';
     })
+    .attr('y', d=>d.type==='host'?20:0)
     .text(d=>d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label);
 
   // Score under host label
   ng.filter(d=>d.type==='host'&&d.score>0)
-    .append('text').attr('text-anchor','end').attr('x',-20).attr('y',13)
+    .append('text').attr('text-anchor','middle').attr('x',0).attr('y',33)
     .attr('font-family','IBM Plex Mono').attr('font-size','9px')
     .attr('fill','rgba(0,229,255,.35)')
     .text(d=>`${(d.score*100).toFixed(0)}%`);

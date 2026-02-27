@@ -351,7 +351,7 @@ def get_sessions():
 # ─────────────────────────────────────────────────────────
 KERN_RE = re.compile(r'SRC=(\S+)\s+DST=\S+\s+.*?DPT=(\d+)', re.IGNORECASE)
 SERVICE_PORT_MAP = {
-    22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp",
+    22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp", 2222: "ssh", 2223: "telnet",
     80: "http", 443: "https", 3306: "mysql",
     5432: "postgres", 6379: "redis", 8080: "http-alt",
 }
@@ -404,7 +404,7 @@ async def tail_cowrie_log():
         src_ip  = ev.get("src_ip", "")
         eventid = ev.get("eventid", "")
         dpt     = ev.get("dst_port", 22)
-        svc     = {22: "ssh", 23: "telnet", 21: "ftp"}.get(dpt, "ssh")
+        svc     = {22: "ssh", 23: "telnet", 21: "ftp", 2222: "ssh", 2223: "telnet"}.get(dpt, "ssh")
 
         if any(x in eventid for x in ["connect", "login", "command", "download", "session"]):
             await process_event(src_ip, eventid, svc, dpt,

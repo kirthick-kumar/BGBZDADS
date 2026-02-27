@@ -23,7 +23,7 @@ attack_portscan(){
 
 attack_service_scan(){
     echo "[2] nmap service scan → Multi-Service Probe rule"
-    nmap -sV -T3 -p 21,2222,2223,25,80,443,3306,5432 $TARGET
+    nmap -sV -T3 -p 21,2222,2323,25,80,443,3306,5432 $TARGET
     echo "[✓] Done"
 }
 
@@ -74,12 +74,8 @@ attack_full_demo(){
 
     echo ""
     echo "Step 2/4: Service scan (Multi-Service Probe rule)..."
-    nmap -sV -T3 -p 21,2222,2223,80,443,25,3306 $TARGET 2>/dev/null || \
-    nmap -T3 -p 21,2222,2223,80,443 $TARGET
-    # Also directly probe FTP and Telnet
-    nc -z -w2 $TARGET 21   2>/dev/null &
-    nc -z -w2 $TARGET 2223 2>/dev/null &
-    wait
+    nmap -sV -T3 -p 21,2222,2323,80,443 $TARGET 2>/dev/null || \
+    nmap -T3 -p 21,2222,2323,80,443 $TARGET
     sleep 5
 
     echo ""
@@ -87,8 +83,6 @@ attack_full_demo(){
     for i in $(seq 1 25); do
         nc -z -w1 $TARGET 2222 2>/dev/null &
         nc -z -w1 $TARGET 80   2>/dev/null &
-        nc -z -w1 $TARGET 21   2>/dev/null &
-        nc -z -w1 $TARGET 2223 2>/dev/null &
         sleep 0.08
     done
     wait
