@@ -169,7 +169,7 @@ header{
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--cyan);background:rgba(0,229,255,.08);border-radius:3px"></div>SSH</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.08);border-radius:3px"></div>HTTP</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--blue);background:rgba(24, 26, 114, 0.08);border-radius:3px"></div>HTTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#64b4ff;background:rgba(100,180,255,.08);border-radius:3px"></div>HTTPS</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1);border-radius:3px"></div>FTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#ff6400;background:rgba(255,100,0,.1);border-radius:3px"></div>Telnet</div>
@@ -447,8 +447,8 @@ function renderGraph(){
       if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline', d=>d.type==='host'?'hanging':'middle').attr('font-size','14px').attr('fill','#444').text('×');
     }
     else if(d.type==='service'){
-      const svcStroke = {ssh:'var(--cyan)', http:'var(--green)', https:'#64b4ff', ftp:'var(--amber)', telnet:'#ff6400', mysql:'#c864ff', smtp:'#ffc800'};
-      const svcFill   = {ssh:'rgba(0,229,255,.08)', http:'rgba(0,230,118,.08)', https:'rgba(100,180,255,.08)', ftp:'rgba(255,171,0,.10)', telnet:'rgba(255,100,0,.10)', mysql:'rgba(200,100,255,.08)', smtp:'rgba(255,200,0,.08)'};
+      const svcStroke = {ssh:'var(--cyan)', http:'var(--blue)', https:'#64b4ff', ftp:'var(--amber)', telnet:'#ff6400', mysql:'#c864ff', smtp:'#ffc800'};
+      const svcFill   = {ssh:'rgba(0,229,255,.08)', http:'rgba(100,180,255,.08)', https:'rgba(100,180,255,.08)', ftp:'rgba(255,171,0,.10)', telnet:'rgba(255,100,0,.10)', mysql:'rgba(200,100,255,.08)', smtp:'rgba(255,200,0,.08)'};
       const stroke = svcStroke[d.label] || 'var(--amber)';
       const fill   = svcFill[d.label]   || 'rgba(255,171,0,.08)';
       el.append('polygon').attr('points','0,-12 12,0 0,12 -12,0')
@@ -471,7 +471,7 @@ function renderGraph(){
       if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)';
       if(d.type==='portrange') return 'rgba(41,121,255,.8)';
       // Service-specific colors
-      const svcColors = {ssh:'rgba(0,229,255,.85)', http:'rgba(0,230,118,.8)', https:'rgba(100,180,255,.85)', ftp:'rgba(255,171,0,.85)', telnet:'rgba(255,100,0,.85)', mysql:'rgba(200,100,255,.8)', smtp:'rgba(255,200,0,.8)'};
+      const svcColors = {ssh:'rgba(0,229,255,.85)', http:'rgba(100,180,255,.85)', https:'rgba(100,180,255,.85)', ftp:'rgba(255,171,0,.85)', telnet:'rgba(255,100,0,.85)', mysql:'rgba(200,100,255,.8)', smtp:'rgba(255,200,0,.8)'};
       return svcColors[d.label] || 'rgba(255,171,0,.8)';
     })
     .attr('y', d=>d.type==='host'?20:0)
