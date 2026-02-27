@@ -207,7 +207,7 @@ def unblock_ip(ip: str):
 # ─────────────────────────────────────────────────────────
 async def process_event(ip: str, event_type: str, service: str,
                         dst_port: int = 0, extra: dict = None):
-    if not ip or ip in ("127.0.0.1", "::1", "0.0.0.0"):
+    if not ip or ip in ("127.0.0.1", "::1", "0.0.0.0") or ip.startswith("15.177."):
         return
 
     now = time.time()
