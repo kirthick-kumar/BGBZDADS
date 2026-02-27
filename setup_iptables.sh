@@ -1,8 +1,10 @@
 #!/bin/bash
 # ============================================================
-# Step 3: iptables PROBE_LOG setup
-# Called by setup_aws.sh automatically
-# Can also run standalone: sudo bash setup_iptables.sh
+# iptables Setup
+# Port 22  = real SSH (untouched)
+# Port 2222 = Cowrie SSH (direct, no redirect)
+# Port 2323 = Cowrie Telnet (direct, no redirect)
+# PROBE_LOG chain logs all new connections for detection
 # ============================================================
 
 echo "[*] Setting up iptables PROBE_LOG chain..."
@@ -12,42 +14,37 @@ iptables -F PROBE_LOG 2>/dev/null || true
 iptables -X PROBE_LOG 2>/dev/null || true
 iptables -N PROBE_LOG
 
-# Log matching packets with PROBE_LOG prefix (kern.log)
+# Log with PROBE_LOG prefix → appears in /var/log/kern.log
 iptables -A PROBE_LOG -m limit --limit 60/min --limit-burst 100 \
     -j LOG --log-prefix "PROBE_LOG " --log-level 4
 iptables -A PROBE_LOG -j RETURN
 
-# Remove old jump rules
+# Remove old jump rules if any
 iptables -D INPUT -p tcp --syn -j PROBE_LOG 2>/dev/null || true
 iptables -D INPUT -p tcp -m state --state NEW \
-    -m multiport --dports 21,22,23,25,80,443,3306,5432,6379,8080 \
+    -m multiport --dports 21,22,23,25,80,443,2222,2323,3306,5432,6379,8080 \
     -j PROBE_LOG 2>/dev/null || true
 
 # Log ALL new TCP SYN packets (catches nmap wide port scans)
 iptables -I INPUT 1 -p tcp --syn -j PROBE_LOG
 
-# Also specifically log known service ports
+# Also specifically log known service ports including Cowrie ports
 iptables -I INPUT 2 -p tcp -m state --state NEW \
-    -m multiport --dports 21,22,23,25,80,443,3306,5432,6379,8080 \
+    -m multiport --dports 21,22,23,25,80,443,2222,2323,3306,5432,6379,8080 \
     -j PROBE_LOG
 
-# NAT: redirect port 22 → 2224 (Cowrie SSH)
-iptables -t nat -D PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2224 2>/dev/null || true
-iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2224
+# NO NAT REDIRECTS — SSH stays on 22, Cowrie listens on 2222/2323 directly
+# Attackers who probe port 2222 or 2323 will hit Cowrie directly
 
-# NAT: redirect port 23 → 2323 (Cowrie Telnet)
-iptables -t nat -D PREROUTING -p tcp --dport 23 -j REDIRECT --to-port 2323 2>/dev/null || true
-iptables -t nat -A PREROUTING -p tcp --dport 23 -j REDIRECT --to-port 2323
-
-# Ensure kern.log receives iptables messages
+# Ensure kern.log gets iptables messages
 if ! grep -q "kern.warning" /etc/rsyslog.conf 2>/dev/null; then
     echo 'kern.warning /var/log/kern.log' >> /etc/rsyslog.conf
     systemctl restart rsyslog 2>/dev/null || true
     echo "[✓] rsyslog kern.log rule added"
 fi
 
-echo "[✓] iptables PROBE_LOG chain active"
-echo "[✓] Port 22 → 2224 (Cowrie), Port 23 → 2323 (Cowrie Telnet)"
+echo "[✓] PROBE_LOG chain active — all new TCP connections logged"
+echo "[✓] Port 22 = real SSH (unchanged)"
+echo "[✓] Port 2222/2323 = Cowrie (direct)"
 echo ""
-echo " Verify with:"
-echo "   sudo tail -f /var/log/kern.log | grep PROBE_LOG"
+echo " Test: sudo tail -f /var/log/kern.log | grep PROBE_LOG"

@@ -2,9 +2,7 @@
 # ============================================================
 # Step 1: Package Installer — Amazon Linux 2023
 # Run: bash install_packages.sh
-# NOTE: curl excluded — curl-minimal pre-installed on AL2023
 # ============================================================
-set -e
 
 echo "═══════════════════════════════════════════════════════"
 echo " GCN Probe Detector — Package Installer"
@@ -34,7 +32,7 @@ sudo yum install -y \
     nginx
 echo "[✓] System packages done"
 
-echo "[2/5] Upgrading pip (user space only — avoids rpm conflict)..."
+echo "[2/5] Upgrading pip (user space only)..."
 python3 -m pip install --upgrade pip --user
 echo "[✓] pip upgraded"
 
@@ -44,7 +42,7 @@ export PYTHONPATH=$HOME/.local/lib/python3.9/site-packages:$PYTHONPATH
 python3 -m pip install --user torch --index-url https://download.pytorch.org/whl/cpu
 echo "[✓] PyTorch installed"
 
-echo "[4/5] Installing torch-geometric (prebuilt wheels — no source build)..."
+echo "[4/5] Installing torch-geometric (prebuilt wheels)..."
 TORCH_VER=$(python3 -c "import torch; print(torch.__version__.split('+')[0])")
 echo "    Detected torch: $TORCH_VER"
 python3 -m pip install --user \
@@ -64,7 +62,6 @@ python3 -m pip install --user \
     pandas
 echo "[✓] App packages installed"
 
-# Persist PATH so agent can find user-installed packages
 grep -q "local/bin" ~/.bashrc || \
     echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
 grep -q "local/lib/python3.9" ~/.bashrc || \
@@ -72,7 +69,7 @@ grep -q "local/lib/python3.9" ~/.bashrc || \
 
 echo ""
 echo "═══════════════════════════════════════════════════════"
-echo " Verifying installs..."
+echo " Verifying..."
 echo "═══════════════════════════════════════════════════════"
 python3 -c "import torch;           print(f'  ✓  torch          {torch.__version__}')"
 python3 -c "import torch_geometric; print(f'  ✓  torch_geometric {torch_geometric.__version__}')"
@@ -81,5 +78,5 @@ python3 -c "import aiohttp;         print(f'  ✓  aiohttp         {aiohttp.__ve
 python3 -c "import sklearn;         print(f'  ✓  scikit-learn    {sklearn.__version__}')"
 python3 -c "import numpy;           print(f'  ✓  numpy           {numpy.__version__}')"
 echo ""
-echo " All done. Next step: bash setup_aws.sh"
+echo " Done. Next: bash setup_aws.sh"
 echo "═══════════════════════════════════════════════════════"
