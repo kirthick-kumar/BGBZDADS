@@ -40,7 +40,8 @@ COWRIE_LOG = os.getenv("COWRIE_LOG", "/home/ec2-user/cowrie/var/log/cowrie/cowri
 KERN_LOG   = os.getenv("KERN_LOG",   "/var/log/kern.log")
 HTTP_LOG   = os.getenv("HTTP_LOG",   "/var/log/nginx/access.log")
 MODEL_PATH = os.getenv("MODEL_PATH", "gcn_autoencoder.pth")
-SCALER_PATH= os.getenv("SCALER_PATH","scaler.pkl")
+SCALER_PATH  = os.getenv("SCALER_PATH","scaler.pkl")
+ENCODER_PATH = os.getenv("ENCODER_PATH","encoders.pkl")
 WS_PORT    = int(os.getenv("WS_PORT",  "8765"))
 HTTP_PORT  = int(os.getenv("HTTP_PORT","8080"))
 HIDDEN_DIM = 128
@@ -61,7 +62,7 @@ RULES = {
 BENIGN_ONLY_SERVICES = {"http", "https"}
 
 # ─────────────────────────────────────────────────────────
-# GCN MODEL (visual scoring only — not used for detection)
+# GCN MODEL — real inference on live connections
 # ─────────────────────────────────────────────────────────
 class GCN_AE(nn.Module):
     def __init__(self, in_channels, hidden_channels):
@@ -82,16 +83,257 @@ if os.path.exists(MODEL_PATH):
         model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
         model.eval()
         gcn_available = True
-        print(f"[✓] GCN model loaded")
+        print(f"[✓] GCN model loaded from {MODEL_PATH}")
     except Exception as e:
         print(f"[!] GCN load error: {e}")
 else:
-    print("[!] GCN model not found — visual scores will be heuristic-derived")
+    print("[!] GCN model not found at {MODEL_PATH} — scores will be heuristic-only")
 
 scaler = None
 if os.path.exists(SCALER_PATH):
-    scaler = joblib.load(SCALER_PATH)
-    print(f"[✓] Scaler loaded")
+    try:
+        scaler = joblib.load(SCALER_PATH)
+        print(f"[✓] Scaler loaded from {SCALER_PATH}")
+    except Exception as e:
+        print(f"[!] Scaler load error: {e}")
+
+encoders = {}
+ENCODER_PATH = os.getenv("ENCODER_PATH", "encoders.pkl")
+if os.path.exists(ENCODER_PATH):
+    try:
+        encoders = joblib.load(ENCODER_PATH)
+        print(f"[✓] Encoders loaded from {ENCODER_PATH}")
+    except Exception as e:
+        print(f"[!] Encoder load error: {e}")
+
+# NSL-KDD anomaly threshold (set from training — 95th percentile of normal errors)
+# Will be loaded from threshold.txt if available, else use default
+ANOMALY_THRESHOLD = 0.5
+if os.path.exists("threshold.txt"):
+    try:
+        with open("threshold.txt") as f:
+            ANOMALY_THRESHOLD = float(f.read().strip())
+        print(f"[✓] Anomaly threshold: {ANOMALY_THRESHOLD:.6f}")
+    except:
+        pass
+
+# ─────────────────────────────────────────────────────────
+# FEATURE EXTRACTION — map live connection → NSL-KDD features
+# ─────────────────────────────────────────────────────────
+# NSL-KDD column order (38 features, excluding label/difficulty)
+NSL_COLUMNS = [
+    "duration","protocol_type","service","flag","src_bytes","dst_bytes","land",
+    "wrong_fragment","urgent","hot","num_failed_logins","logged_in",
+    "num_compromised","root_shell","su_attempted","num_root","num_file_creations",
+    "num_shells","num_access_files","num_outbound_cmds","is_host_login",
+    "is_guest_login","count","srv_count","serror_rate","srv_serror_rate",
+    "rerror_rate","srv_rerror_rate","same_srv_rate","diff_srv_rate",
+    "srv_diff_host_rate","dst_host_count","dst_host_srv_count",
+    "dst_host_same_srv_rate","dst_host_diff_srv_rate",
+    "dst_host_same_src_port_rate","dst_host_srv_diff_host_rate",
+    "dst_host_serror_rate","dst_host_srv_serror_rate",
+]
+
+# Service name → NSL-KDD service string mapping
+SERVICE_MAP = {
+    "ssh": "ssh", "http": "http", "https": "http", "ftp": "ftp",
+    "telnet": "telnet", "smtp": "smtp", "mysql": "private",
+    "postgres": "private", "redis": "private", "http-alt": "http_443",
+}
+
+# Protocol type mapping
+PROTO_MAP = {
+    "ssh": "tcp", "http": "tcp", "https": "tcp", "ftp": "tcp",
+    "telnet": "tcp", "smtp": "tcp", "mysql": "tcp",
+}
+
+def encode_categorical(col, value, fallback=0):
+    """Encode a categorical value using the loaded LabelEncoder."""
+    if col in encoders:
+        le = encoders[col]
+        if value in le.classes_:
+            return int(le.transform([value])[0])
+        # Unknown value — use most common fallback
+        return fallback
+    return fallback
+
+def extract_features(ip: str, service: str, event_type: str,
+                     dst_port: int, st: dict) -> np.ndarray:
+    """
+    Map a live connection event to NSL-KDD feature vector (38 features).
+    Uses sliding window stats from ip_state for count-based features.
+    """
+    now = time.time()
+
+    # ── Basic connection features ─────────────────────────
+    duration = max(0, now - st.get("first_seen", now))
+
+    # protocol_type: tcp for most, udp for dns
+    proto_str = PROTO_MAP.get(service, "tcp")
+    protocol_type = encode_categorical("protocol_type", proto_str, fallback=2)  # 2=tcp default
+
+    # service: map to NSL-KDD service name
+    svc_str = SERVICE_MAP.get(service, "private")
+    svc_encoded = encode_categorical("service", svc_str, fallback=0)
+
+    # flag: S0 = SYN scan (no response), SF = normal full connection
+    # If it's an iptables-only event (nmap) → likely S0; Cowrie session = SF
+    if "cowrie" in event_type or "http" in event_type:
+        flag_str = "SF"   # full connection established
+    else:
+        flag_str = "S0"   # SYN only, no response (nmap-style)
+    flag_encoded = encode_categorical("flag", flag_str, fallback=9)  # 9=S0 default
+
+    # src_bytes / dst_bytes: estimate from event type
+    if "login.failed" in event_type:
+        src_bytes, dst_bytes = 300, 200
+    elif "login.success" in event_type:
+        src_bytes, dst_bytes = 500, 1000
+    elif "http" in event_type:
+        src_bytes, dst_bytes = 400, 2000
+    elif "command" in event_type:
+        src_bytes, dst_bytes = 200, 500
+    else:
+        src_bytes, dst_bytes = 100, 0   # SYN scan — minimal bytes
+
+    # ── Auth/login features ───────────────────────────────
+    num_failed_logins = min(len(st["logins_failed"]), 10)
+    logged_in = 1 if "login.success" in event_type else 0
+    is_guest_login = 1 if ("guest" in event_type or "anonymous" in event_type) else 0
+
+    # ── Sliding window count features ────────────────────
+    # count: connections to same host in last 2s
+    recent_conns = [t for t, in st["connections"] if now - t < 2.0] if st["connections"] else []
+    count = min(len(recent_conns) + 1, 511)
+
+    # srv_count: connections to same service in last 2s
+    recent_svcs = [s for t, s in st["services"] if now - t < 2.0 and s == service]
+    srv_count = min(len(recent_svcs) + 1, 511)
+
+    # serror_rate: ratio of SYN errors (S0 flags) in recent connections
+    # If event_type is iptables (nmap), treat as serror
+    total_recent = max(count, 1)
+    syn_only = 1 if ("iptables" in event_type) else 0
+    serror_rate     = round(syn_only, 2)
+    srv_serror_rate = round(syn_only, 2)
+    rerror_rate     = 0.0
+    srv_rerror_rate = 0.0
+
+    # same_srv_rate: fraction of recent connections to same service
+    same_srv_rate = round(srv_count / total_recent, 2)
+    diff_srv_rate = round(1.0 - same_srv_rate, 2)
+    srv_diff_host_rate = 0.0
+
+    # ── dst_host features (last 100 connections to this host) ─
+    all_ports = list(st["ports"])[-100:] if st["ports"] else []
+    dst_host_count = min(len(all_ports) + 1, 255)
+
+    same_port_count = sum(1 for _, p in all_ports if p == dst_port)
+    dst_host_same_srv_rate = round(same_port_count / max(dst_host_count, 1), 2)
+    dst_host_diff_srv_rate = round(1.0 - dst_host_same_srv_rate, 2)
+    dst_host_srv_count     = min(srv_count, 255)
+    dst_host_same_src_port_rate = round(same_port_count / max(dst_host_count, 1), 2)
+    dst_host_srv_diff_host_rate = 0.0
+    dst_host_serror_rate        = serror_rate
+    dst_host_srv_serror_rate    = srv_serror_rate
+
+    # ── Assemble feature vector ───────────────────────────
+    features = [
+        duration,           # 0
+        protocol_type,      # 1
+        svc_encoded,        # 2
+        flag_encoded,       # 3
+        src_bytes,          # 4
+        dst_bytes,          # 5
+        0,                  # 6  land
+        0,                  # 7  wrong_fragment
+        0,                  # 8  urgent
+        0,                  # 9  hot
+        num_failed_logins,  # 10
+        logged_in,          # 11
+        0,                  # 12 num_compromised
+        0,                  # 13 root_shell
+        0,                  # 14 su_attempted
+        0,                  # 15 num_root
+        0,                  # 16 num_file_creations
+        0,                  # 17 num_shells
+        0,                  # 18 num_access_files
+        0,                  # 19 num_outbound_cmds
+        0,                  # 20 is_host_login
+        is_guest_login,     # 21
+        count,              # 22
+        srv_count,          # 23
+        serror_rate,        # 24
+        srv_serror_rate,    # 25
+        rerror_rate,        # 26
+        srv_rerror_rate,    # 27
+        same_srv_rate,      # 28
+        diff_srv_rate,      # 29
+        srv_diff_host_rate, # 30
+        dst_host_count,     # 31
+        dst_host_srv_count, # 32
+        dst_host_same_srv_rate,      # 33
+        dst_host_diff_srv_rate,      # 34
+        dst_host_same_src_port_rate, # 35
+        dst_host_srv_diff_host_rate, # 36
+        dst_host_serror_rate,        # 37
+        dst_host_srv_serror_rate,    # 38 — only 38 needed but keep aligned
+    ]
+
+    return np.array(features[:38], dtype=np.float32)
+
+def run_gcn_inference(ip: str, service: str, event_type: str,
+                      dst_port: int, st: dict) -> dict:
+    """
+    Run the GCN autoencoder on a single connection and return:
+    - reconstruction_error: raw MSE loss
+    - gcn_prediction: 'PROBE' or 'NORMAL'
+    - gcn_confidence: 0.0–1.0
+    - gcn_score: normalised anomaly score
+    """
+    if not gcn_available or scaler is None:
+        return {"gcn_prediction": "N/A", "gcn_confidence": 0.0,
+                "gcn_score": 0.0, "reconstruction_error": 0.0}
+
+    try:
+        # Extract + scale features
+        raw_features = extract_features(ip, service, event_type, dst_port, st)
+        scaled = scaler.transform(raw_features.reshape(1, -1))  # (1, 38)
+
+        # Build minimal bipartite graph: 1 host + 1 service node
+        host_feat = torch.tensor(scaled, dtype=torch.float32)             # (1, 38)
+        svc_feat  = torch.zeros((1, 38), dtype=torch.float32)             # (1, 38)
+        x         = torch.cat([host_feat, svc_feat], dim=0).to(DEVICE)   # (2, 38)
+
+        # Edge: host(0) ↔ service(1)
+        edge_index = torch.tensor([[0, 1], [1, 0]], dtype=torch.long).to(DEVICE)
+
+        data = Data(x=x, edge_index=edge_index)
+
+        with torch.no_grad():
+            recon = model(data.x, data.edge_index)
+            # Reconstruction error on host node only (index 0)
+            error = torch.mean((recon[0] - data.x[0]) ** 2).item()
+
+        # Normalise against threshold
+        gcn_score = min(error / max(ANOMALY_THRESHOLD, 1e-9), 2.0) / 2.0
+        gcn_score = round(float(gcn_score), 4)
+
+        prediction  = "PROBE"  if error > ANOMALY_THRESHOLD else "NORMAL"
+        confidence  = min(abs(error - ANOMALY_THRESHOLD) / max(ANOMALY_THRESHOLD, 1e-9), 1.0)
+        confidence  = round(float(confidence), 4)
+
+        return {
+            "gcn_prediction":       prediction,
+            "gcn_confidence":       confidence,
+            "gcn_score":            gcn_score,
+            "reconstruction_error": round(float(error), 6),
+        }
+
+    except Exception as e:
+        print(f"[!] GCN inference error for {ip}: {e}")
+        return {"gcn_prediction": "ERR", "gcn_confidence": 0.0,
+                "gcn_score": 0.0, "reconstruction_error": 0.0}
 
 # ─────────────────────────────────────────────────────────
 # STATE
@@ -102,18 +344,22 @@ events_log   = []
 graph_state  = {"nodes": [], "edges": []}
 
 ip_state = defaultdict(lambda: {
-    "ports":           deque(),
-    "logins_failed":   deque(),
-    "connections":     deque(),
-    "services":        deque(),
-    "label":           "normal",
-    "score":           0.0,
-    "blocked":         False,
-    "triggered_rules": set(),
-    "first_seen":      time.time(),
-    "last_seen":       time.time(),
-    "event_count":     0,
-    "http_only":       True,   # True until a non-HTTP event is seen
+    "ports":                deque(),
+    "logins_failed":        deque(),
+    "connections":          deque(),
+    "services":             deque(),
+    "label":                "normal",
+    "score":                0.0,
+    "blocked":              False,
+    "triggered_rules":      set(),
+    "first_seen":           time.time(),
+    "last_seen":            time.time(),
+    "event_count":          0,
+    "http_only":            True,
+    "gcn_prediction":       "N/A",
+    "gcn_confidence":       0.0,
+    "gcn_score":            0.0,
+    "reconstruction_error": 0.0,
 })
 
 # ─────────────────────────────────────────────────────────
@@ -233,14 +479,25 @@ async def process_event(ip: str, event_type: str, service: str,
         if event_type == "cowrie.login.failed":
             st["logins_failed"].append((now,))
 
-    # Run detection
+    # Run heuristic detection
     is_probe, rules_hit, score = evaluate_rules(ip)
     st["score"] = score
 
-    if is_probe:
+    # Run GCN model inference
+    gcn = run_gcn_inference(ip, service, event_type, dst_port, st)
+    st["gcn_prediction"]       = gcn["gcn_prediction"]
+    st["gcn_confidence"]       = gcn["gcn_confidence"]
+    st["gcn_score"]            = gcn["gcn_score"]
+    st["reconstruction_error"] = gcn["reconstruction_error"]
+
+    # Combined label: probe if EITHER heuristic OR GCN flags it
+    gcn_says_probe = gcn["gcn_prediction"] == "PROBE"
+    if is_probe or gcn_says_probe:
         st["label"] = "probe"
         for r in rules_hit:
             st["triggered_rules"].add(r)
+        if gcn_says_probe and "GCN Anomaly" not in st["triggered_rules"]:
+            st["triggered_rules"].add("GCN Anomaly")
         # Only auto-block if not HTTP-only traffic
         if ip not in blocked_ips and not st["http_only"]:
             block_ip(ip)
@@ -249,14 +506,18 @@ async def process_event(ip: str, event_type: str, service: str,
 
     # Log event
     entry = {
-        "timestamp": ts,
-        "src_ip":    ip,
-        "eventid":   event_type,
-        "service":   service,
-        "dst_port":  dst_port,
-        "score":     score,
-        "label":     st["label"],
-        "rules":     list(st["triggered_rules"]),
+        "timestamp":            ts,
+        "src_ip":               ip,
+        "eventid":              event_type,
+        "service":              service,
+        "dst_port":             dst_port,
+        "score":                score,
+        "label":                st["label"],
+        "rules":                list(st["triggered_rules"]),
+        "gcn_prediction":       gcn["gcn_prediction"],
+        "gcn_confidence":       gcn["gcn_confidence"],
+        "gcn_score":            gcn["gcn_score"],
+        "reconstruction_error": gcn["reconstruction_error"],
         **(extra or {}),
     }
     events_log.append(entry)
@@ -266,19 +527,23 @@ async def process_event(ip: str, event_type: str, service: str,
     rebuild_graph()
 
     await broadcast({
-        "type":      "event",
-        "timestamp": ts,
-        "src_ip":    ip,
-        "service":   service,
-        "eventid":   event_type,
-        "dst_port":  dst_port,
-        "score":     score,
-        "label":     st["label"],
-        "rules_hit": rules_hit,
-        "blocked":   ip in blocked_ips,
-        "graph":     graph_state,
-        "sessions":  get_sessions(),
-        "events":    events_log[-60:],
+        "type":                 "event",
+        "timestamp":            ts,
+        "src_ip":               ip,
+        "service":              service,
+        "eventid":              event_type,
+        "dst_port":             dst_port,
+        "score":                score,
+        "label":                st["label"],
+        "rules_hit":            rules_hit,
+        "blocked":              ip in blocked_ips,
+        "gcn_prediction":       gcn["gcn_prediction"],
+        "gcn_confidence":       gcn["gcn_confidence"],
+        "gcn_score":            gcn["gcn_score"],
+        "reconstruction_error": gcn["reconstruction_error"],
+        "graph":                graph_state,
+        "sessions":             get_sessions(),
+        "events":               events_log[-60:],
     })
 
 # ─────────────────────────────────────────────────────────
@@ -333,15 +598,19 @@ def rebuild_graph():
 def get_sessions():
     return [
         {
-            "ip":            ip,
-            "label":         st["label"],
-            "score":         round(st["score"], 4),
-            "blocked":       st["blocked"],
-            "events":        st["event_count"],
-            "rules":         list(st["triggered_rules"]),
-            "services":      list(set(s for _, s in st["services"])),
-            "ports_scanned": len(set(p for _, p in st["ports"])),
-            "failed_logins": len(st["logins_failed"]),
+            "ip":                   ip,
+            "label":                st["label"],
+            "score":                round(st["score"], 4),
+            "blocked":              st["blocked"],
+            "events":               st["event_count"],
+            "rules":                list(st["triggered_rules"]),
+            "services":             list(set(s for _, s in st["services"])),
+            "ports_scanned":        len(set(p for _, p in st["ports"])),
+            "failed_logins":        len(st["logins_failed"]),
+            "gcn_prediction":       st["gcn_prediction"],
+            "gcn_confidence":       round(st["gcn_confidence"], 4),
+            "gcn_score":            round(st["gcn_score"], 4),
+            "reconstruction_error": round(st["reconstruction_error"], 6),
         }
         for ip, st in ip_state.items()
     ]
