@@ -41,7 +41,8 @@ import aiohttp_cors
 # CONFIG
 # ─────────────────────────────────────────────────────────
 COWRIE_LOG   = os.getenv("COWRIE_LOG",   "/home/cowrie/cowrie/var/log/cowrie/cowrie.json")
-KERN_LOG     = os.getenv("KERN_LOG",     "/var/log/kern.log")      # iptables LOG target
+KERN_LOG     = os.getenv("KERN_LOG",     "/var/log/kern.log")
+HTTP_LOG     = os.getenv("HTTP_LOG",     "/var/log/nginx/access.log")
 MODEL_PATH   = os.getenv("MODEL_PATH",   "gcn_autoencoder.pth")
 SCALER_PATH  = os.getenv("SCALER_PATH",  "scaler.pkl")
 WS_PORT      = int(os.getenv("WS_PORT",  "8765"))
@@ -532,6 +533,39 @@ def make_http_app():
         cors.add(r)
     return app
 
+
+# ─────────────────────────────────────────────────────────
+# LAYER 3: nginx access log tailer (catches HTTP visits)
+# ─────────────────────────────────────────────────────────
+# nginx combined log format:
+# 1.2.3.4 - - [27/Feb/2026:04:00:00 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/7.88"
+NGINX_RE = re.compile(r'^(\S+)\s+-\s+-\s+\[.*?\]\s+"(\w+)\s+(\S+)\s+HTTP')
+
+async def tail_http_log():
+    """Tail nginx access log — every HTTP visit creates a node."""
+    print(f"[*] Tailing HTTP log: {HTTP_LOG}")
+    while not os.path.exists(HTTP_LOG):
+        await asyncio.sleep(3)
+
+    proc = await asyncio.create_subprocess_exec(
+        "tail", "-F", "-n", "0", HTTP_LOG,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    async for raw in proc.stdout:
+        line = raw.decode("utf-8", errors="ignore").strip()
+        if not line:
+            continue
+        m = NGINX_RE.match(line)
+        if not m:
+            continue
+        src_ip = m.group(1)
+        method = m.group(2)
+        path   = m.group(3)
+        await process_event(src_ip, "http.request", "http", 80,
+                            extra={"method": method, "path": path[:80]})
+
+
 # ─────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────
@@ -548,6 +582,7 @@ async def main():
     await asyncio.gather(
         tail_kern_log(),
         tail_cowrie_log(),
+        tail_http_log(),
     )
 
 if __name__ == "__main__":

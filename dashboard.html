@@ -25,329 +25,120 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow:hidden;}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:'IBM Plex Sans',sans-serif;
-  font-size:14px;
-}
-
-/* Grid bg */
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;}
 body::after{
   content:'';position:fixed;inset:0;pointer-events:none;
-  background-image:
-    linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
-  background-size:48px 48px;
-  z-index:0;
+  background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
+  background-size:48px 48px;z-index:0;
 }
-
-/* ── HEADER ── */
 header{
-  position:relative;z-index:10;
-  height:52px;
+  position:relative;z-index:10;height:52px;
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;
-  border-bottom:1px solid var(--border);
+  padding:0 20px;border-bottom:1px solid var(--border);
   background:rgba(3,7,15,.97);
 }
-.logo{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:15px;font-weight:600;
-  color:var(--cyan);
-  letter-spacing:1px;
-  display:flex;align-items:center;gap:12px;
-}
-.logo-badge{
-  font-size:10px;padding:2px 8px;
-  background:rgba(0,229,255,.08);
-  border:1px solid rgba(0,229,255,.2);
-  border-radius:2px;
-  color:rgba(0,229,255,.6);
-  letter-spacing:2px;
-}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:var(--cyan);letter-spacing:1px;display:flex;align-items:center;gap:12px;}
+.logo-badge{font-size:10px;padding:2px 8px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:2px;color:rgba(0,229,255,.6);letter-spacing:2px;}
 .hdr-right{display:flex;align-items:center;gap:20px;}
 .conn-group{display:flex;align-items:center;gap:8px;}
-.conn-group input{
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  color:var(--cyan);
-  padding:5px 10px;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12px;
-  border-radius:3px;
-  width:180px;
-}
-.btn{
-  padding:5px 14px;
-  border-radius:3px;
-  border:1px solid;
-  background:transparent;
-  cursor:pointer;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:11px;
-  letter-spacing:.5px;
-  transition:all .15s;
-}
+.conn-group input{background:var(--surface2);border:1px solid var(--border2);color:var(--cyan);padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:3px;width:180px;}
+.btn{padding:5px 14px;border-radius:3px;border:1px solid;background:transparent;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.5px;transition:all .15s;}
 .btn-cyan{color:var(--cyan);border-color:rgba(0,229,255,.3);}
 .btn-cyan:hover{background:rgba(0,229,255,.08);}
 .btn-red{color:var(--red);border-color:rgba(255,23,68,.3);}
 .btn-red:hover{background:rgba(255,23,68,.08);}
 .btn-green{color:var(--green);border-color:rgba(0,230,118,.3);}
 .btn-green:hover{background:rgba(0,230,118,.08);}
-.status-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:var(--dim);
-}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);}
 .status-dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;}
 .status-dot.alert{background:var(--red);box-shadow:0 0 10px var(--red);animation:blink .5s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
 #conn-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim2);}
 
-/* ── STATS BAR ── */
-.stats-bar{
-  position:relative;z-index:10;
-  height:64px;
-  display:grid;grid-template-columns:repeat(6,1fr);
-  border-bottom:1px solid var(--border);
-  background:var(--surface);
-}
-.stat{
-  display:flex;flex-direction:column;justify-content:center;
-  padding:0 20px;
-  border-right:1px solid var(--border);
-}
+.stats-bar{position:relative;z-index:10;height:64px;display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border);background:var(--surface);}
+.stat{display:flex;flex-direction:column;justify-content:center;padding:0 20px;border-right:1px solid var(--border);}
 .stat:last-child{border-right:none;}
-.stat-n{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:26px;font-weight:600;
-  color:var(--cyan);
-  line-height:1;
-}
-.stat-n.red   {color:var(--red);}
-.stat-n.green {color:var(--green);}
-.stat-n.amber {color:var(--amber);}
+.stat-n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--cyan);line-height:1;}
+.stat-n.red{color:var(--red);}
+.stat-n.green{color:var(--green);}
+.stat-n.amber{color:var(--amber);}
 .stat-l{font-size:10px;color:var(--dim2);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
 
-/* ── MAIN GRID ── */
-.main{
-  position:relative;z-index:1;
-  display:grid;
-  grid-template-columns:1fr 320px;
-  height:calc(100vh - 52px - 64px);
-}
+.main{position:relative;z-index:1;display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 52px - 64px);}
 
-/* ── GRAPH ── */
-.graph-wrap{
-  display:flex;flex-direction:column;
-  border-right:1px solid var(--border);
-  background:var(--surface);
-  overflow:hidden;
-}
-.pane-hdr{
-  height:38px;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 16px;
-  border-bottom:1px solid var(--border);
-  background:rgba(0,0,0,.3);
-  flex-shrink:0;
-}
-.pane-title{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:11px;letter-spacing:1.5px;
-  text-transform:uppercase;color:var(--text);
-}
+.graph-wrap{display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surface);overflow:hidden;}
+.pane-hdr{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3);flex-shrink:0;}
+.pane-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);}
 .pane-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim2);}
 
-.graph-controls{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 16px;
-  border-bottom:1px solid var(--border);
-  background:rgba(0,0,0,.2);
-  flex-shrink:0;
-}
-.seg-btn{
-  padding:3px 12px;font-size:11px;
-  font-family:'IBM Plex Mono',monospace;
-  border:1px solid var(--border2);
-  background:transparent;color:var(--dim2);
-  cursor:pointer;border-radius:2px;transition:all .15s;
-}
-.seg-btn.active{
-  background:rgba(0,229,255,.1);
-  color:var(--cyan);border-color:rgba(0,229,255,.4);
-}
-
+.graph-controls{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);flex-shrink:0;}
+.seg-btn{padding:3px 12px;font-size:11px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--border2);background:transparent;color:var(--dim2);cursor:pointer;border-radius:2px;transition:all .15s;}
+.seg-btn.active{background:rgba(0,229,255,.1);color:var(--cyan);border-color:rgba(0,229,255,.4);}
 .legend{display:flex;gap:16px;margin-left:auto;font-size:10px;font-family:'IBM Plex Mono',monospace;}
 .leg-item{display:flex;align-items:center;gap:5px;color:var(--dim2);}
 .leg-dot{width:10px;height:10px;border-radius:50%;border:2px solid;}
-
 #graph-svg{flex:1;width:100%;}
 
-/* ── SIDEBAR ── */
-.sidebar{
-  display:flex;flex-direction:column;
-  overflow:hidden;
-}
-
-/* Sessions */
-.sessions-pane{
-  flex:1;display:flex;flex-direction:column;
-  overflow:hidden;border-bottom:1px solid var(--border);
-}
+.sidebar{display:flex;flex-direction:column;overflow:hidden;}
+.sessions-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);}
 .sessions-list{overflow-y:auto;flex:1;}
 .sessions-list::-webkit-scrollbar{width:3px;}
 .sessions-list::-webkit-scrollbar-thumb{background:var(--border2);}
 
-.sess-card{
-  padding:10px 14px;
-  border-bottom:1px solid rgba(14,32,64,.6);
-  border-left:3px solid transparent;
-  transition:background .15s;
-  animation:cardIn .25s ease;
-}
+.sess-card{padding:10px 14px;border-bottom:1px solid rgba(14,32,64,.6);border-left:3px solid transparent;transition:background .15s;animation:cardIn .25s ease;}
 @keyframes cardIn{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:none;}}
-.sess-card.probe {border-left-color:var(--red);}
+.sess-card.probe{border-left-color:var(--red);}
 .sess-card.normal{border-left-color:var(--green);}
 .sess-card.blocked{opacity:.45;}
 .sess-card:hover{background:rgba(0,229,255,.02);}
-
-.sess-ip{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:13px;color:var(--cyan);
-  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
-}
-.badge{
-  font-size:9px;padding:1px 5px;
-  border-radius:2px;font-weight:600;
-  letter-spacing:.8px;
-}
-.badge-probe  {background:rgba(255,23,68,.12); color:var(--red);  border:1px solid rgba(255,23,68,.25);}
-.badge-normal {background:rgba(0,230,118,.08); color:var(--green);border:1px solid rgba(0,230,118,.2);}
-.badge-blocked{background:rgba(50,50,50,.3);   color:#555;       border:1px solid #333;}
-
-.sess-rules{
-  display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;
-}
-.rule-tag{
-  font-size:9px;padding:1px 6px;
-  background:rgba(255,171,0,.08);
-  border:1px solid rgba(255,171,0,.2);
-  color:var(--amber);border-radius:2px;
-  font-family:'IBM Plex Mono',monospace;
-}
-
-.sess-meta{
-  font-size:11px;color:var(--dim2);
-  margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;
-  font-family:'IBM Plex Mono',monospace;
-}
-.score-track{
-  margin-top:6px;height:2px;
-  background:var(--border);border-radius:1px;
-}
+.sess-ip{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--cyan);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.badge{font-size:9px;padding:1px 5px;border-radius:2px;font-weight:600;letter-spacing:.8px;}
+.badge-probe{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(255,23,68,.25);}
+.badge-normal{background:rgba(0,230,118,.08);color:var(--green);border:1px solid rgba(0,230,118,.2);}
+.badge-blocked{background:rgba(50,50,50,.3);color:#555;border:1px solid #333;}
+.sess-rules{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.rule-tag{font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);border:1px solid rgba(255,171,0,.2);color:var(--amber);border-radius:2px;font-family:'IBM Plex Mono',monospace;}
+.sess-meta{font-size:11px;color:var(--dim2);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;}
+.score-track{margin-top:6px;height:2px;background:var(--border);border-radius:1px;}
 .score-fill{height:100%;border-radius:1px;transition:width .6s ease;}
-.unblock-btn{
-  margin-top:6px;font-size:10px;padding:2px 8px;
-  border:1px solid var(--dim);background:transparent;
-  color:var(--dim2);cursor:pointer;border-radius:2px;
-  font-family:'IBM Plex Mono',monospace;transition:all .15s;
-}
+.unblock-btn{margin-top:6px;font-size:10px;padding:2px 8px;border:1px solid var(--dim);background:transparent;color:var(--dim2);cursor:pointer;border-radius:2px;font-family:'IBM Plex Mono',monospace;transition:all .15s;}
 .unblock-btn:hover{color:var(--green);border-color:var(--green);}
 
-/* Event log */
-.log-pane{
-  height:200px;display:flex;flex-direction:column;
-  flex-shrink:0;
-}
+.log-pane{height:220px;display:flex;flex-direction:column;flex-shrink:0;}
 .log-list{overflow-y:auto;flex:1;}
 .log-list::-webkit-scrollbar{width:3px;}
 .log-list::-webkit-scrollbar-thumb{background:var(--border2);}
-.log-row{
-  display:flex;align-items:baseline;gap:8px;
-  padding:3px 14px;
-  border-bottom:1px solid rgba(14,32,64,.4);
-  font-family:'IBM Plex Mono',monospace;
-  font-size:10px;color:var(--dim2);
-  animation:fadeIn .15s;
-}
+.log-row{display:flex;align-items:baseline;gap:8px;padding:3px 14px;border-bottom:1px solid rgba(14,32,64,.4);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim2);animation:fadeIn .15s;}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .log-row.probe{color:rgba(255,80,100,.7);}
 .log-row.normal{color:rgba(176,204,224,.55);}
 .log-ts{color:var(--dim);flex-shrink:0;width:62px;}
-.log-ip{color:var(--cyan);flex-shrink:0;width:100px;overflow:hidden;text-overflow:ellipsis;}
-.log-svc{color:var(--amber);flex-shrink:0;width:46px;}
+.log-ip{color:var(--cyan);flex-shrink:0;width:105px;overflow:hidden;text-overflow:ellipsis;}
+.log-svc{color:var(--amber);flex-shrink:0;width:52px;}
 
-/* Alert banner */
-.alert-banner{
-  position:fixed;top:0;left:0;right:0;z-index:9999;
-  padding:10px 20px;
-  background:rgba(255,23,68,.12);
-  border-bottom:1.5px solid var(--red);
-  color:var(--red);
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12px;letter-spacing:1px;
-  display:flex;align-items:center;gap:16px;
-  animation:slideDown .25s ease;
-}
+.alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 20px;background:rgba(255,23,68,.12);border-bottom:1.5px solid var(--red);color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;display:flex;align-items:center;gap:16px;animation:slideDown .25s ease;}
 @keyframes slideDown{from{transform:translateY(-100%);opacity:0;}to{transform:none;opacity:1;}}
 
-/* Rules panel (collapsible) */
-.rules-pane{
-  border-top:1px solid var(--border);
-  background:var(--surface2);
-  padding:10px 14px;
-  flex-shrink:0;
-}
-.rules-title{
-  font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--dim2);margin-bottom:8px;
-  font-family:'IBM Plex Mono',monospace;
-}
-.rule-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:6px;font-size:11px;
-  font-family:'IBM Plex Mono',monospace;
-}
-.rule-row label{color:var(--dim2);font-size:10px;}
-.rule-row input{
-  width:50px;background:var(--surface);
-  border:1px solid var(--border2);
-  color:var(--cyan);padding:2px 6px;
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  border-radius:2px;text-align:right;
-}
+/* waiting screen */
+.waiting{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:5;}
+.waiting-title{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--dim2);letter-spacing:2px;}
+.waiting-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);animation:blink 1.5s infinite;}
 
-/* tooltip */
-.tt{
-  position:fixed;
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  padding:8px 12px;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:11px;border-radius:4px;
-  pointer-events:none;z-index:100;
-  line-height:1.7;color:var(--text);
-  box-shadow:0 4px 20px rgba(0,0,0,.4);
-}
+.tt{position:fixed;background:var(--surface2);border:1px solid var(--border2);padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-radius:4px;pointer-events:none;z-index:100;line-height:1.7;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.4);}
 .tt-head{color:var(--cyan);font-weight:600;margin-bottom:2px;}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
-  <div class="logo">
-    GCN·PROBE·DETECTOR
-    <span class="logo-badge">NSL-KDD</span>
-  </div>
+  <div class="logo">GCN·PROBE·DETECTOR <span class="logo-badge">LIVE</span></div>
   <div class="hdr-right">
     <div class="conn-group">
       <div class="status-dot" id="dot"></div>
       <span id="conn-label">OFFLINE</span>
     </div>
     <div class="conn-group">
-      <input id="srv-ip" type="text" value="localhost" placeholder="AWS Public IP"/>
+      <input id="srv-ip" type="text" placeholder="AWS Public IP"/>
       <button class="btn btn-cyan" onclick="connect()">CONNECT</button>
       <button class="btn btn-red"  onclick="resetAll()">RESET</button>
       <button class="btn btn-green" onclick="exportLog()">EXPORT</button>
@@ -355,58 +146,54 @@ header{
   </div>
 </header>
 
-<!-- STATS -->
 <div class="stats-bar">
   <div class="stat"><div class="stat-n" id="sn-total">0</div><div class="stat-l">Sessions</div></div>
-  <div class="stat"><div class="stat-n red"   id="sn-probes">0</div><div class="stat-l">Probes Detected</div></div>
+  <div class="stat"><div class="stat-n red"   id="sn-probes">0</div><div class="stat-l">Probes</div></div>
   <div class="stat"><div class="stat-n green" id="sn-normal">0</div><div class="stat-l">Normal</div></div>
-  <div class="stat"><div class="stat-n amber" id="sn-blocked">0</div><div class="stat-l">Blocked IPs</div></div>
+  <div class="stat"><div class="stat-n amber" id="sn-blocked">0</div><div class="stat-l">Blocked</div></div>
   <div class="stat"><div class="stat-n" id="sn-ports">0</div><div class="stat-l">Max Ports Scanned</div></div>
-  <div class="stat"><div class="stat-n" id="sn-events">0</div><div class="stat-l">Total Events</div></div>
+  <div class="stat"><div class="stat-n" id="sn-events">0</div><div class="stat-l">Events</div></div>
 </div>
 
-<!-- MAIN -->
 <div class="main">
-
-  <!-- GRAPH PANEL -->
   <div class="graph-wrap">
     <div class="pane-hdr">
-      <span class="pane-title">Bipartite Graph — Host ↔ Service / Port-Range</span>
+      <span class="pane-title">Bipartite Graph — Host ↔ Service</span>
       <span class="pane-meta" id="graph-meta"></span>
     </div>
     <div class="graph-controls">
-      <button class="seg-btn active" data-mode="all"    onclick="setMode('all',this)">ALL</button>
-      <button class="seg-btn"        data-mode="probe"  onclick="setMode('probe',this)">PROBE ONLY</button>
-      <button class="seg-btn"        data-mode="normal" onclick="setMode('normal',this)">NORMAL ONLY</button>
+      <button class="seg-btn active" onclick="setMode('all',this)">ALL</button>
+      <button class="seg-btn" onclick="setMode('probe',this)">PROBE ONLY</button>
+      <button class="seg-btn" onclick="setMode('normal',this)">NORMAL ONLY</button>
       <div class="legend">
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe Host</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal Host</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1);border-radius:3px"></div>Service</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--blue);background:rgba(41,121,255,.1);border-radius:0"></div>Port Range</div>
       </div>
     </div>
-    <svg id="graph-svg"></svg>
+    <div style="position:relative;flex:1;">
+      <svg id="graph-svg" style="width:100%;height:100%;"></svg>
+      <div class="waiting" id="waiting-screen">
+        <div class="waiting-dot"></div>
+        <div class="waiting-title">CONNECT TO AWS SERVER TO BEGIN</div>
+        <div style="font-size:11px;color:var(--dim);font-family:'IBM Plex Mono',monospace;">Enter your AWS IP above and click CONNECT</div>
+      </div>
+    </div>
   </div>
 
-  <!-- SIDEBAR -->
   <div class="sidebar">
-
-    <!-- Sessions -->
     <div class="sessions-pane">
       <div class="pane-hdr">
         <span class="pane-title">Active Sessions</span>
         <span class="pane-meta" id="sess-meta">0 sessions</span>
       </div>
-      <div class="sessions-list" id="sess-list"></div>
+      <div class="sessions-list" id="sess-list">
+        <div style="padding:20px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim2);">
+          Waiting for connections...
+        </div>
+      </div>
     </div>
-
-    <!-- Rules -->
-    <div class="rules-pane">
-      <div class="rules-title">Detection Rules (live threshold)</div>
-      <div id="rules-ui"></div>
-    </div>
-
-    <!-- Log -->
     <div class="log-pane">
       <div class="pane-hdr">
         <span class="pane-title">Event Log</span>
@@ -414,16 +201,14 @@ header{
       </div>
       <div class="log-list" id="log-list"></div>
     </div>
-
   </div>
 </div>
 
-<!-- TOOLTIP -->
 <div class="tt" id="tt" style="display:none"></div>
 
 <script>
 // ══════════════════════════════════════════════
-// STATE
+// STATE — no demo mode, all real data only
 // ══════════════════════════════════════════════
 let ws        = null;
 let sessions  = [];
@@ -431,19 +216,21 @@ let events    = [];
 let graphData = {nodes:[], edges:[]};
 let rules     = {};
 let graphMode = 'all';
-let demoTimer = null;
-let totalEvents = 0;
 
 // ══════════════════════════════════════════════
 // WEBSOCKET
 // ══════════════════════════════════════════════
 function connect(){
-  const ip = document.getElementById('srv-ip').value.trim() || 'localhost';
-  if(ws){ ws.close(); clearDemo(); }
+  const ip = document.getElementById('srv-ip').value.trim();
+  if(!ip){ alert('Enter your AWS IP first'); return; }
+  if(ws){ ws.close(); }
   setDot('connecting');
   ws = new WebSocket(`ws://${ip}:8765`);
-  ws.onopen  = () => { setDot('live'); clearDemo(); };
-  ws.onclose = () => { setDot('off'); startDemo(); };
+  ws.onopen  = () => {
+    setDot('live');
+    document.getElementById('waiting-screen').style.display = 'none';
+  };
+  ws.onclose = () => { setDot('off'); };
   ws.onerror = () => setDot('off');
   ws.onmessage = e => handleMsg(JSON.parse(e.data));
 }
@@ -454,24 +241,23 @@ function setDot(state){
   const d = document.getElementById('dot');
   const l = document.getElementById('conn-label');
   d.className = 'status-dot';
-  if(state==='live')       { d.classList.add('live');  l.textContent='CONNECTED';    }
-  else if(state==='alert') { d.classList.add('alert'); l.textContent='ALERT';        }
-  else if(state==='connecting') { l.textContent='CONNECTING…'; }
-  else                     { l.textContent='OFFLINE';  }
+  if(state==='live')        { d.classList.add('live');  l.textContent='CONNECTED';    }
+  else if(state==='alert')  { d.classList.add('alert'); l.textContent='ALERT';        }
+  else if(state==='connecting'){ l.textContent='CONNECTING…'; }
+  else                      { l.textContent='OFFLINE';  }
 }
 
 // ══════════════════════════════════════════════
 // MESSAGE HANDLER
 // ══════════════════════════════════════════════
 function handleMsg(msg){
-  if(msg.graph)    graphData = msg.graph;
-  if(msg.sessions) sessions  = msg.sessions;
-  if(msg.events)   events    = msg.events;
-  if(msg.rules)    { rules = msg.rules; renderRules(); }
-
   if(msg.type === 'reset'){
     sessions=[]; events=[]; graphData={nodes:[],edges:[]};
   }
+  if(msg.graph)    graphData = msg.graph;
+  if(msg.sessions) sessions  = msg.sessions;
+  if(msg.events)   events    = msg.events;
+  if(msg.rules)    { rules = msg.rules; }
 
   if(msg.label === 'probe' || (msg.rules_hit && msg.rules_hit.length)){
     flashAlert(msg.src_ip, msg.rules_hit || [], msg.score);
@@ -493,21 +279,25 @@ function updateStats(){
   const normal  = sessions.filter(s=>s.label==='normal').length;
   const blocked = sessions.filter(s=>s.blocked).length;
   const maxPorts= sessions.reduce((m,s)=>Math.max(m,s.ports_scanned||0),0);
-  const evTotal = events.length;
   document.getElementById('sn-total').textContent   = sessions.length;
   document.getElementById('sn-probes').textContent  = probes;
   document.getElementById('sn-normal').textContent  = normal;
   document.getElementById('sn-blocked').textContent = blocked;
   document.getElementById('sn-ports').textContent   = maxPorts;
-  document.getElementById('sn-events').textContent  = evTotal;
+  document.getElementById('sn-events').textContent  = events.length;
   document.getElementById('sess-meta').textContent  = `${sessions.length} sessions`;
-  document.getElementById('log-meta').textContent   = `${evTotal} events`;
+  document.getElementById('log-meta').textContent   = `${events.length} events`;
 }
 
 // ══════════════════════════════════════════════
 // SESSIONS
 // ══════════════════════════════════════════════
 function renderSessions(){
+  if(!sessions.length){
+    document.getElementById('sess-list').innerHTML =
+      '<div style="padding:20px 14px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--dim2);">No sessions yet — run an attack or access the HTTP service</div>';
+    return;
+  }
   const sorted = [...sessions].sort((a,b)=>b.score-a.score);
   document.getElementById('sess-list').innerHTML = sorted.map(s=>{
     const pct   = Math.min(s.score * 100, 100);
@@ -542,36 +332,16 @@ function doUnblock(ip){ send({action:'unblock', ip}); }
 // EVENT LOG
 // ══════════════════════════════════════════════
 function renderLog(){
-  const list = [...events].reverse().slice(0,100);
+  const list = [...events].reverse().slice(0,150);
   document.getElementById('log-list').innerHTML = list.map(e=>{
     const ts  = new Date(e.timestamp).toLocaleTimeString('en',{hour12:false});
-    const svc = (e.service||'?').slice(0,8).padEnd(8);
     return `<div class="log-row ${e.label||'normal'}">
       <span class="log-ts">${ts}</span>
       <span class="log-ip">${e.src_ip}</span>
-      <span class="log-svc">${e.service||'?'}</span>
+      <span class="log-svc">${(e.service||'?').slice(0,8)}</span>
       <span>${e.eventid||''}</span>
     </div>`;
   }).join('');
-}
-
-// ══════════════════════════════════════════════
-// RULES UI
-// ══════════════════════════════════════════════
-function renderRules(){
-  document.getElementById('rules-ui').innerHTML = Object.entries(rules).map(([key,r])=>`
-    <div class="rule-row">
-      <label>${r.label}</label>
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim2)">
-        win <input type="number" value="${r.window}"    onchange="updateRule('${key}','window',+this.value)" style="width:44px"/>
-        thr <input type="number" value="${r.threshold}" onchange="updateRule('${key}','threshold',+this.value)" style="width:44px"/>
-      </div>
-    </div>`).join('');
-}
-
-function updateRule(rule,key,value){
-  send({action:'update_rule', rule, key, value});
-  if(rules[rule]) rules[rule][key] = value;
 }
 
 // ══════════════════════════════════════════════
@@ -592,7 +362,6 @@ function renderGraph(){
   let nodes = (graphData.nodes||[]);
   let edges = (graphData.edges||[]);
 
-  // Filter by mode
   if(graphMode !== 'all'){
     const keepHosts = new Set(
       nodes.filter(n=>n.type==='host' && n.classification===graphMode).map(n=>n.id)
@@ -610,320 +379,154 @@ function renderGraph(){
   document.getElementById('graph-meta').textContent =
     `${hostNodes.length} hosts · ${serviceNodes.length} services · ${portNodes.length} port ranges · ${edges.length} edges`;
 
-  // Positions: hosts left, services+ports right
   const pad = 80;
   const nodeMap = {};
 
-  const leftY  = (i,total) => total===1 ? H/2 : pad + i*(H-pad*2)/(total-1||1);
-  const rightY = (i,total) => total===1 ? H/2 : pad + i*(H-pad*2)/(total-1||1);
+  const posY = (i,total) => total===1 ? H/2 : pad + i*(H-pad*2)/Math.max(total-1,1);
 
-  hostNodes.forEach((n,i)=>{
-    n.x = pad; n.y = leftY(i, hostNodes.length);
-    nodeMap[n.id] = n;
-  });
-  rightNodes.forEach((n,i)=>{
-    n.x = W - pad; n.y = rightY(i, rightNodes.length);
-    nodeMap[n.id] = n;
-  });
+  hostNodes.forEach((n,i)=>{ n.x=pad; n.y=posY(i,hostNodes.length); nodeMap[n.id]=n; });
+  rightNodes.forEach((n,i)=>{ n.x=W-pad; n.y=posY(i,rightNodes.length); nodeMap[n.id]=n; });
 
   const resolvedEdges = edges
-    .map(e=>({ ...e, src: nodeMap[e.source], tgt: nodeMap[e.target] }))
+    .map(e=>({...e, src:nodeMap[e.source], tgt:nodeMap[e.target]}))
     .filter(e=>e.src && e.tgt);
 
-  // D3 render
   const d3svg = d3.select('#graph-svg');
   d3svg.selectAll('*').remove();
 
   const defs = d3svg.append('defs');
-  ['red','green','blue'].forEach(c=>{
-    const f = defs.append('filter').attr('id',`glow-${c}`);
-    f.append('feGaussianBlur').attr('stdDeviation','4').attr('result','coloredBlur');
-    const m = f.append('feMerge');
-    m.append('feMergeNode').attr('in','coloredBlur');
-    m.append('feMergeNode').attr('in','SourceGraphic');
-  });
+  const f = defs.append('filter').attr('id','glow');
+  f.append('feGaussianBlur').attr('stdDeviation','4').attr('result','coloredBlur');
+  const m = f.append('feMerge');
+  m.append('feMergeNode').attr('in','coloredBlur');
+  m.append('feMergeNode').attr('in','SourceGraphic');
 
   const g = d3svg.append('g');
 
-  // Column headers
-  if(hostNodes.length){
-    g.append('text').attr('x',pad).attr('y',28).attr('text-anchor','middle')
-      .attr('font-family','IBM Plex Mono').attr('font-size','9px')
-      .attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('HOSTS');
-  }
-  if(rightNodes.length){
-    g.append('text').attr('x',W-pad).attr('y',28).attr('text-anchor','middle')
-      .attr('font-family','IBM Plex Mono').attr('font-size','9px')
-      .attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('SERVICES / PORTS');
-  }
+  // Column labels
+  if(hostNodes.length) g.append('text').attr('x',pad).attr('y',22).attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size','9px').attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('HOSTS');
+  if(rightNodes.length) g.append('text').attr('x',W-pad).attr('y',22).attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size','9px').attr('fill','rgba(0,229,255,.3)').attr('letter-spacing','2').text('SERVICES');
 
-  // Edges — curved
-  g.selectAll('.edge')
-    .data(resolvedEdges).enter()
-    .append('path')
+  // Edges
+  g.selectAll('.edge').data(resolvedEdges).enter().append('path')
     .attr('fill','none')
     .attr('d', e=>{
-      const mx = (e.src.x + e.tgt.x)/2;
+      const mx=(e.src.x+e.tgt.x)/2;
       return `M${e.src.x},${e.src.y} C${mx},${e.src.y} ${mx},${e.tgt.y} ${e.tgt.x},${e.tgt.y}`;
     })
     .attr('stroke', e=>{
-      const sn = nodeMap[e.source];
-      if(sn?.classification==='probe') return 'rgba(255,23,68,.45)';
-      return 'rgba(0,229,255,.18)';
+      const sn=nodeMap[e.source];
+      return sn?.classification==='probe'?'rgba(255,23,68,.5)':'rgba(0,229,255,.2)';
     })
-    .attr('stroke-width', e=>{
-      const sn = nodeMap[e.source];
-      return sn?.classification==='probe' ? 2 : 1.2;
-    });
+    .attr('stroke-width', e=> nodeMap[e.source]?.classification==='probe'?2:1.2);
 
   // Nodes
-  const ng = g.selectAll('.node')
-    .data(nodes).enter()
-    .append('g')
+  const ng = g.selectAll('.node').data(nodes).enter().append('g')
     .attr('transform', n=>`translate(${n.x},${n.y})`)
     .style('cursor','pointer')
     .on('mouseover',(ev,d)=>showTT(ev,d))
-    .on('mouseout', ()=>document.getElementById('tt').style.display='none');
+    .on('mouseout',()=>document.getElementById('tt').style.display='none');
 
-  // Shape: host=circle, service=diamond, portrange=square
   ng.each(function(d){
-    const el = d3.select(this);
-    if(d.type === 'host'){
-      el.append('circle')
-        .attr('r', 15)
-        .attr('fill', d.blocked?'#111': d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)')
-        .attr('stroke', d.blocked?'#333': d.classification==='probe'?'var(--red)':'var(--green)')
-        .attr('stroke-width', 2)
-        .attr('filter', d.classification==='probe'&&!d.blocked ? 'url(#glow-red)' : null);
-
-      // Pulsing ring for active probes
-      if(d.classification==='probe' && !d.blocked){
+    const el=d3.select(this);
+    if(d.type==='host'){
+      el.append('circle').attr('r',15)
+        .attr('fill', d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)')
+        .attr('stroke', d.blocked?'#333':d.classification==='probe'?'var(--red)':'var(--green)')
+        .attr('stroke-width',2)
+        .attr('filter', d.classification==='probe'&&!d.blocked?'url(#glow)':null);
+      if(d.classification==='probe'&&!d.blocked){
         el.append('circle').attr('r',15).attr('fill','none')
           .attr('stroke','rgba(255,23,68,.3)').attr('stroke-width',1.5)
-          .append('animate')
-          .attr('attributeName','r').attr('values','15;26;15')
-          .attr('dur','1.8s').attr('repeatCount','indefinite');
+          .append('animate').attr('attributeName','r').attr('values','15;26;15').attr('dur','1.8s').attr('repeatCount','indefinite');
       }
-      if(d.blocked){
-        el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle')
-          .attr('font-size','14px').attr('fill','#444').text('×');
-      }
+      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','14px').attr('fill','#444').text('×');
     }
-    else if(d.type === 'service'){
-      el.append('polygon')
-        .attr('points', '0,-12 12,0 0,12 -12,0')
-        .attr('fill','rgba(255,171,0,.08)')
-        .attr('stroke','var(--amber)').attr('stroke-width',1.5);
+    else if(d.type==='service'){
+      el.append('polygon').attr('points','0,-12 12,0 0,12 -12,0')
+        .attr('fill','rgba(255,171,0,.08)').attr('stroke','var(--amber)').attr('stroke-width',1.5);
     }
-    else { // portrange
-      el.append('rect')
-        .attr('x',-11).attr('y',-11).attr('width',22).attr('height',22)
-        .attr('rx',2)
-        .attr('fill','rgba(41,121,255,.08)')
-        .attr('stroke','var(--blue)').attr('stroke-width',1.5);
+    else{
+      el.append('rect').attr('x',-11).attr('y',-11).attr('width',22).attr('height',22).attr('rx',2)
+        .attr('fill','rgba(41,121,255,.08)').attr('stroke','var(--blue)').attr('stroke-width',1.5);
     }
   });
 
   // Labels
   ng.append('text')
-    .attr('text-anchor', d=> d.type==='host' ? 'end' : 'start')
-    .attr('x', d=> d.type==='host' ? -20 : 18)
+    .attr('text-anchor', d=>d.type==='host'?'end':'start')
+    .attr('x', d=>d.type==='host'?-20:18)
     .attr('dominant-baseline','middle')
-    .attr('font-family','IBM Plex Mono')
-    .attr('font-size','11px')
+    .attr('font-family','IBM Plex Mono').attr('font-size','11px')
     .attr('fill', d=>{
       if(d.blocked) return '#444';
       if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)';
       if(d.type==='portrange') return 'rgba(41,121,255,.8)';
       return 'rgba(255,171,0,.8)';
     })
-    .text(d=> d.label && d.label.length>18 ? d.label.slice(0,16)+'…' : d.label);
+    .text(d=>d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label);
 
-  // Score below host label
-  ng.filter(d=>d.type==='host' && d.score>0)
-    .append('text')
-    .attr('text-anchor','end').attr('x',-20).attr('y',13)
+  // Score under host label
+  ng.filter(d=>d.type==='host'&&d.score>0)
+    .append('text').attr('text-anchor','end').attr('x',-20).attr('y',13)
     .attr('font-family','IBM Plex Mono').attr('font-size','9px')
     .attr('fill','rgba(0,229,255,.35)')
     .text(d=>`${(d.score*100).toFixed(0)}%`);
 }
 
-function showTT(ev, d){
-  const t = document.getElementById('tt');
-  let html = `<div class="tt-head">${d.label}</div>`;
+function showTT(ev,d){
+  const t=document.getElementById('tt');
+  let html=`<div class="tt-head">${d.label}</div>`;
   if(d.type==='host'){
-    html += `Type: HOST<br>`;
-    html += `Status: ${d.classification?.toUpperCase()||'?'}<br>`;
-    html += `Score: ${d.score||0}<br>`;
-    html += `Events: ${d.events||0}<br>`;
-    html += `Blocked: ${d.blocked?'YES':'NO'}`;
-    if(d.rules?.length) html += `<br>Rules: ${d.rules.join(', ')}`;
-  } else if(d.type==='service'){
-    html += `Type: SERVICE<br>Name: ${d.label}`;
+    html+=`Status: ${d.classification?.toUpperCase()||'?'}<br>Score: ${d.score||0}<br>Events: ${d.events||0}<br>Blocked: ${d.blocked?'YES':'NO'}`;
+    if(d.rules?.length) html+=`<br>Rules: ${d.rules.join(', ')}`;
   } else {
-    html += `Type: PORT RANGE<br>Range: ${d.label}`;
+    html+=`Type: ${d.type.toUpperCase()}<br>Name: ${d.label}`;
   }
-  t.innerHTML = html;
+  t.innerHTML=html;
   t.style.display='block';
   t.style.left=(ev.clientX+14)+'px';
-  t.style.top =(ev.clientY-10)+'px';
+  t.style.top=(ev.clientY-10)+'px';
 }
 
 // ══════════════════════════════════════════════
-// ALERT BANNER
+// ALERT
 // ══════════════════════════════════════════════
 function flashAlert(ip, rulesHit, score){
-  const old = document.querySelector('.alert-banner');
+  const old=document.querySelector('.alert-banner');
   if(old) old.remove();
-  const el  = document.createElement('div');
-  el.className = 'alert-banner';
-  el.innerHTML = `
-    <span style="color:var(--red);font-size:14px">⚠</span>
-    PROBE DETECTED — <span style="color:var(--red)">${ip}</span>
-    &nbsp;|&nbsp; ${rulesHit.join(' + ')}
-    &nbsp;|&nbsp; score: ${(score||0).toFixed(3)}
-    &nbsp;|&nbsp; IP AUTO-BLOCKED
-  `;
+  const el=document.createElement('div');
+  el.className='alert-banner';
+  el.innerHTML=`<span style="font-size:14px">⚠</span> PROBE DETECTED — <span style="color:var(--red)">${ip}</span> &nbsp;|&nbsp; ${(rulesHit||[]).join(' + ')} &nbsp;|&nbsp; score: ${(score||0).toFixed(3)} &nbsp;|&nbsp; IP AUTO-BLOCKED`;
   document.body.prepend(el);
-  setTimeout(()=>el.remove(), 5000);
+  setTimeout(()=>el.remove(),5000);
 }
 
 // ══════════════════════════════════════════════
 // CONTROLS
 // ══════════════════════════════════════════════
 function resetAll(){
-  if(!confirm('Reset all sessions, unblock all IPs?')) return;
-  const ip = document.getElementById('srv-ip').value.trim();
-  fetch(`http://${ip}:8080/reset`,{method:'POST'}).catch(()=>{});
+  if(!confirm('Reset all sessions and unblock all IPs?')) return;
   send({action:'reset'});
+  const ip=document.getElementById('srv-ip').value.trim();
+  fetch(`http://${ip}:8080/reset`,{method:'POST'}).catch(()=>{});
   sessions=[]; events=[]; graphData={nodes:[],edges:[]};
   updateStats(); renderSessions(); renderLog(); renderGraph();
 }
 
 function exportLog(){
-  const blob = new Blob([JSON.stringify({sessions,events},null,2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `probe_log_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+  const blob=new Blob([JSON.stringify({sessions,events},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`probe_log_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
   a.click();
 }
 
-// ══════════════════════════════════════════════
-// DEMO MODE (runs when not connected to real server)
-// ══════════════════════════════════════════════
-const PROBE_IPS  = ['203.0.113.42', '198.51.100.7', '192.0.2.100'];
-const NORMAL_IPS = ['10.0.0.55', '10.0.0.56', '172.16.1.10'];
-const SERVICES   = ['ssh','http','ftp','telnet','https','mysql'];
-const PROBE_EVTS = ['iptables.probe_log','iptables.probe_log','cowrie.login.failed','cowrie.session.connect'];
-const NORM_EVTS  = ['cowrie.session.connect','cowrie.login.failed','cowrie.login.success'];
-const ATTACK_RULES = [
-  ['Port Scan (nmap)'],
-  ['SSH Brute Force'],
-  ['Multi-Service Probe'],
-  ['Port Scan (nmap)','Multi-Service Probe'],
-  ['Rapid Connections'],
-];
+window.addEventListener('resize',renderGraph);
 
-let demoSessions = {};
-let demoEvents   = [];
-
-function clearDemo(){ if(demoTimer){ clearInterval(demoTimer); demoTimer=null; } }
-
-function startDemo(){
-  if(demoTimer) return;
-  demoSessions = {};
-  demoEvents   = [];
-  let tick = 0;
-
-  demoTimer = setInterval(()=>{
-    tick++;
-    const isProbe  = Math.random() < 0.4;
-    const ip       = isProbe
-      ? PROBE_IPS[Math.floor(Math.random()*PROBE_IPS.length)]
-      : NORMAL_IPS[Math.floor(Math.random()*NORMAL_IPS.length)];
-
-    if(!demoSessions[ip]){
-      demoSessions[ip] = {
-        ip, label:'normal', score:0, blocked:false,
-        rules:[], services:[], ports_scanned:0, failed_logins:0, events:0
-      };
-    }
-    const s = demoSessions[ip];
-
-    const svc   = SERVICES[Math.floor(Math.random()*SERVICES.length)];
-    const evtid = isProbe
-      ? PROBE_EVTS[Math.floor(Math.random()*PROBE_EVTS.length)]
-      : NORM_EVTS[Math.floor(Math.random()*NORM_EVTS.length)];
-
-    if(!s.services.includes(svc)) s.services.push(svc);
-    s.events++;
-
-    if(isProbe){
-      s.score = Math.min(s.score + Math.random()*0.18, 0.97);
-      s.ports_scanned += Math.floor(Math.random()*8)+1;
-      if(evtid.includes('failed')) s.failed_logins++;
-      s.label = s.score > 0.25 ? 'probe' : 'normal';
-      if(s.score > 0.4) s.rules = ATTACK_RULES[Math.floor(Math.random()*ATTACK_RULES.length)];
-      if(s.score > 0.7 && !s.blocked) s.blocked = true;
-    } else {
-      s.score = Math.max(0, s.score*0.95 + Math.random()*0.04);
-    }
-
-    demoEvents.push({
-      timestamp: new Date().toISOString(),
-      src_ip: ip, service: svc, eventid: evtid,
-      score: s.score, label: s.label,
-    });
-    if(demoEvents.length > 200) demoEvents.shift();
-
-    // Build graph
-    const nodes=[], edges=[], seen={};
-    Object.values(demoSessions).forEach(ss=>{
-      const hid = `h_${ss.ip}`;
-      nodes.push({id:hid,type:'host',label:ss.ip,classification:ss.label,
-                  score:ss.score,blocked:ss.blocked,rules:ss.rules,events:ss.events});
-      ss.services.forEach(sv=>{
-        const sid=`s_${sv}`;
-        if(!seen[sid]){nodes.push({id:sid,type:'service',label:sv});seen[sid]=1;}
-        edges.push({source:hid,target:sid});
-      });
-      if(ss.ports_scanned>8){
-        const pid='b_ports:0-1023';
-        if(!seen[pid]){nodes.push({id:pid,type:'portrange',label:'ports:0-1023'});seen[pid]=1;}
-        edges.push({source:hid,target:pid});
-      }
-    });
-
-    sessions  = Object.values(demoSessions);
-    events    = demoEvents;
-    graphData = {nodes, edges};
-    rules     = {
-      port_scan:    {label:'Port Scan (nmap)',   window:30, threshold:10},
-      brute_force:  {label:'SSH Brute Force',    window:60, threshold:5},
-      rapid_conn:   {label:'Rapid Connections',  window:10, threshold:15},
-      multi_service:{label:'Multi-Service Probe',window:60, threshold:3},
-    };
-
-    if(s.score>0.7 && s.label==='probe' && !s._alerted){
-      s._alerted = true;
-      flashAlert(ip, s.rules, s.score);
-      setDot('alert');
-      setTimeout(()=>setDot('off'), 3000);
-    }
-
-    updateStats(); renderSessions(); renderLog(); renderGraph();
-    if(Object.keys(demoSessions).length===1) renderRules();
-  }, 700);
-}
-
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-window.addEventListener('resize', renderGraph);
-
-const urlIP = new URLSearchParams(location.search).get('ip');
-if(urlIP){ document.getElementById('srv-ip').value = urlIP; connect(); }
-else { startDemo(); }
+// Auto-connect if IP in URL
+const urlIP=new URLSearchParams(location.search).get('ip');
+if(urlIP){ document.getElementById('srv-ip').value=urlIP; connect(); }
 </script>
 </body>
 </html>
