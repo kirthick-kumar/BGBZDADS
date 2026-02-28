@@ -117,23 +117,31 @@ mydestination = $myhostname, localhost.$mydomain, localhost
 relay_domains =
 mynetworks = 127.0.0.0/8
 smtpd_banner = $myhostname ESMTP Postfix
-disable_vrfy_command = yes
-smtpd_helo_required = yes
+disable_vrfy_command = no
+smtpd_helo_required = no
 mailbox_size_limit = 0
 message_size_limit = 10240000
 smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
 PFEOF
 
-sudo systemctl start postfix
+# AWS blocks port 25 at network level — use port 2525 instead
+sudo sed -i 's/^smtp      inet/# smtp      inet/' /etc/postfix/master.cf
+# Remove any existing 2525 entry to avoid duplicates
+sudo sed -i '/^2525 /d' /etc/postfix/master.cf
+echo "2525      inet  n       -       n       -       -       smtpd" | sudo tee -a /etc/postfix/master.cf
+
+sudo systemctl restart postfix
 sudo systemctl enable postfix
+sleep 1
 echo -n "    Postfix SMTP: "; sudo systemctl is-active postfix
-echo "[OK] SMTP on port 25"
+echo -n "    Port 2525:    "; sudo ss -tlnp | grep 2525 | grep -c master || echo "0"
+echo "[OK] SMTP on port 2525 (AWS blocks port 25)"
 
 # ── 5. iptables ──────────────────────────────────────────────
 echo ""
 echo "[5/7] Configuring iptables..."
 sudo bash "$SCRIPT_DIR/setup_iptables.sh"
-for port in 22 25 80 2222 2223 8765 8080; do
+for port in 22 80 2222 2223 2525 8765 8080; do
     sudo iptables -I INPUT -p tcp --dport $port -j ACCEPT 2>/dev/null || true
 done
 echo "[OK] iptables done"
@@ -195,6 +203,7 @@ echo -n "  probe-detector: "; sudo systemctl is-active probe-detector
 echo -n "  Cowrie SSH:     "; sudo ss -tlnp | grep -c 2222 || echo 0
 echo -n "  Cowrie Telnet:  "; sudo ss -tlnp | grep -c 2223 || echo 0
 echo -n "  Postfix SMTP:   "; sudo systemctl is-active postfix
+echo -n "  Port 2525:      "; sudo ss -tlnp | grep 2525 | grep -c master || echo 0
 sleep 2
 echo -n "  HTTP API:       "; curl -s http://localhost:8080/status \
     | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK -',len(d['sessions']),'sessions')" \
@@ -205,5 +214,5 @@ echo "======================================================="
 echo " DONE — $AWS_IP"
 echo " Dashboard: python3 -m http.server 3000"
 echo "   open: http://localhost:3000/dashboard.html?ip=${AWS_IP}"
-echo " Security Group ports: 22 25 80 2222 2223 8765 8080"
+echo " Security Group ports: 22 80 2222 2223 2525 8765 8080"
 echo "======================================================="

