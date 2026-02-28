@@ -41,7 +41,7 @@ sudo iptables -I INPUT 1 -p tcp --syn -j PROBE_LOG
 
 # Also log specific service ports
 sudo iptables -I INPUT 2 -p tcp -m state --state NEW \
-    -m multiport --dports 21,22,23,25,80,443,2222,2223,3306,5432,6379,8080 \
+    -m multiport --dports 21,22,23,25,80,443,2222,2223,2525,3306,5432,6379,8080 \
     -j PROBE_LOG
 
 # Ensure kern.log receives iptables messages
