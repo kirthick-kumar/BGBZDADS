@@ -54,11 +54,15 @@ DEVICE     = torch.device("cpu")
 # DETECTION RULES
 # ─────────────────────────────────────────────────────────
 RULES = {
-    "port_scan":    {"window": 30,  "threshold": 10,  "label": "Port Scan (nmap)"},
-    "brute_force":  {"window": 60,  "threshold": 5,   "label": "SSH Brute Force"},
-    "rapid_conn":   {"window": 10,  "threshold": 20,  "label": "Rapid Connections"},
-    "multi_service":{"window": 60,  "threshold": 4,   "label": "Multi-Service Probe"},
+    "port_scan":    {"window": 30,  "threshold": 15,  "label": "Port Scan (nmap)"},
+    "brute_force":  {"window": 60,  "threshold": 8,   "label": "SSH Brute Force"},
+    "rapid_conn":   {"window": 10,  "threshold": 30,  "label": "Rapid Connections"},
+    "multi_service":{"window": 60,  "threshold": 5,   "label": "Multi-Service Probe"},
 }
+
+# Services that require MULTIPLE failed attempts before counting toward brute force
+# A single telnet/ssh login attempt is normal — not an attack
+BRUTE_FORCE_SERVICES = {"ssh", "telnet", "ftp", "smtp"}
 
 # Services that are "normal" — HTTP visits alone never trigger probe detection
 BENIGN_ONLY_SERVICES = {"http", "https"}
@@ -108,9 +112,10 @@ if os.path.exists(ENCODER_PATH):
     except Exception as e:
         print(f"[!] Encoder load error: {e}")
 
-# NSL-KDD anomaly threshold (set from training — 95th percentile of normal errors)
-# Will be loaded from threshold.txt if available, else use default
-ANOMALY_THRESHOLD = 0.5
+# NSL-KDD anomaly threshold — calibrated from live traffic:
+# Normal HTTP:  ~0.17  Normal SSH/Telnet: ~0.47  Brute force: 10+
+# Threshold of 2.0 allows normal connections, blocks real attacks
+ANOMALY_THRESHOLD = 2.0
 if os.path.exists("threshold.txt"):
     try:
         with open("threshold.txt") as f:
@@ -139,14 +144,14 @@ NSL_COLUMNS = [
 # Service name → NSL-KDD service string mapping
 SERVICE_MAP = {
     "ssh": "ssh", "http": "http", "https": "http", "ftp": "ftp",
-    "telnet": "telnet", "smtp": "smtp", "mysql": "private",
+    "telnet": "telnet", "smtp": "smtp_25", "mysql": "private",
     "postgres": "private", "redis": "private", "http-alt": "http_443",
 }
 
 # Protocol type mapping
 PROTO_MAP = {
     "ssh": "tcp", "http": "tcp", "https": "tcp", "ftp": "tcp",
-    "telnet": "tcp", "smtp": "tcp", "mysql": "tcp",
+    "telnet": "tcp", "smtp": "tcp", "mysql": "tcp", "smtp25": "tcp",
 }
 
 def encode_categorical(col, value, fallback=0):
@@ -496,18 +501,26 @@ async def process_event(ip: str, event_type: str, service: str,
     st["gcn_score"]            = gcn["gcn_score"]
     st["reconstruction_error"] = gcn["reconstruction_error"]
 
-    # Combined label: probe if EITHER heuristic OR GCN flags it
+    # Label logic:
+    #   - "probe" if heuristic rules fire (enough evidence)
+    #   - GCN adds "GCN Anomaly" tag but NEVER triggers block alone
+    #   - Auto-block only when heuristic rules fire (not GCN alone)
     gcn_says_probe = gcn["gcn_prediction"] == "PROBE"
-    if is_probe or gcn_says_probe:
+
+    if is_probe:
         st["label"] = "probe"
         for r in rules_hit:
             st["triggered_rules"].add(r)
-        if gcn_says_probe and "GCN Anomaly" not in st["triggered_rules"]:
+        if gcn_says_probe:
             st["triggered_rules"].add("GCN Anomaly")
-        # Only auto-block if not HTTP-only traffic
+        # Auto-block only on heuristic rules, never on GCN alone
         if ip not in blocked_ips and not st["http_only"]:
             block_ip(ip)
-    elif st["label"] != "probe":
+    elif gcn_says_probe and not st["http_only"]:
+        # GCN says probe but heuristics don't — mark suspicious but don't block
+        st["label"] = "suspicious"
+        st["triggered_rules"].add("GCN Anomaly")
+    elif st["label"] not in ("probe", "suspicious"):
         st["label"] = "normal"
 
     # Log event
@@ -626,7 +639,7 @@ def get_sessions():
 # ─────────────────────────────────────────────────────────
 KERN_RE = re.compile(r'SRC=(\S+)\s+DST=\S+\s+.*?DPT=(\d+)', re.IGNORECASE)
 SERVICE_PORT_MAP = {
-    22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp", 2222: "ssh", 2223: "telnet",
+    22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp", 2222: "ssh", 2223: "telnet", 587: "smtp", 465: "smtp", 2224: "telnet", 587: "smtp", 465: "smtp",
     80: "http", 443: "https", 3306: "mysql",
     5432: "postgres", 6379: "redis", 8080: "http-alt",
 }

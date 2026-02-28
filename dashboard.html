@@ -47,7 +47,7 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
 #conn-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim2);}
 .stats-bar{position:relative;z-index:10;height:64px;display:grid;
-  grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border);background:var(--surface);}
+  grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);background:var(--surface);}
 .stat{display:flex;flex-direction:column;justify-content:center;padding:0 20px;border-right:1px solid var(--border);}
 .stat:last-child{border-right:none;}
 .stat-n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--cyan);line-height:1;}
@@ -81,6 +81,7 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
 .sess-card.probe{border-left-color:var(--red);}
 .sess-card.normal{border-left-color:var(--green);}
 .sess-card.blocked{opacity:.45;}
+.sess-card.suspicious{border-left-color:var(--amber);}
 .sess-card:hover{background:rgba(0,229,255,.02);}
 .sess-ip{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--cyan);
   display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
@@ -91,6 +92,7 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
 .badge-gcn-probe{background:rgba(255,100,0,.12);color:#ff6400;border:1px solid rgba(255,100,0,.3);}
 .badge-gcn-normal{background:rgba(100,180,255,.08);color:#64b4ff;border:1px solid rgba(100,180,255,.2);}
 .badge-gcn-na{background:rgba(50,50,50,.2);color:#444;border:1px solid #333;}
+.badge-suspicious{background:rgba(255,171,0,.12);color:var(--amber);border:1px solid rgba(255,171,0,.3);}
 .sess-rules{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
 .rule-tag{font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);
   border:1px solid rgba(255,171,0,.2);color:var(--amber);border-radius:2px;font-family:'IBM Plex Mono',monospace;}
@@ -165,6 +167,7 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
   <div class="stat"><div class="stat-n" id="sn-total">0</div><div class="stat-l">Sessions</div></div>
   <div class="stat"><div class="stat-n red"   id="sn-probes">0</div><div class="stat-l">Probes</div></div>
   <div class="stat"><div class="stat-n green" id="sn-normal">0</div><div class="stat-l">Normal</div></div>
+  <div class="stat"><div class="stat-n amber" id="sn-suspicious">0</div><div class="stat-l">Suspicious</div></div>
   <div class="stat"><div class="stat-n amber" id="sn-blocked">0</div><div class="stat-l">Blocked</div></div>
   <div class="stat"><div class="stat-n" id="sn-ports">0</div><div class="stat-l">Max Ports</div></div>
   <div class="stat"><div class="stat-n" id="sn-events">0</div><div class="stat-l">Events</div></div>
@@ -183,11 +186,13 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
       <div class="legend">
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--cyan);background:rgba(0,229,255,.08);border-radius:3px"></div>SSH</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.08);border-radius:3px"></div>HTTP</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1)"></div>Suspicious</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#9c27b0;background:rgba(156,39,176,.1);border-radius:3px"></div>SSH</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#2979ff;background:rgba(41,121,255,.08);border-radius:3px"></div>HTTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#64b4ff;background:rgba(100,180,255,.08);border-radius:3px"></div>HTTPS</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1);border-radius:3px"></div>FTP</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:#ff6400;background:rgba(255,100,0,.1);border-radius:3px"></div>Telnet</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#ff6d00;background:rgba(255,109,0,.1);border-radius:3px"></div>FTP</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#7c4dff;background:rgba(124,77,255,.1);border-radius:3px"></div>Telnet</div>
+        <div class="leg-item"><div class="leg-dot" style="border-color:#ffd600;background:rgba(255,214,0,.1);border-radius:3px"></div>SMTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--blue);background:rgba(41,121,255,.1);border-radius:0"></div>Port Range</div>
       </div>
     </div>
@@ -287,13 +292,15 @@ function handleMsg(msg){
 // STATS
 // ═══════════════════════════════════════════
 function updateStats(){
-  var probes  = sessions.filter(function(s){ return s.label==='probe'; }).length;
+  var probes      = sessions.filter(function(s){ return s.label==='probe'; }).length;
+  var suspicious  = sessions.filter(function(s){ return s.label==='suspicious'; }).length;
   var normal  = sessions.filter(function(s){ return s.label==='normal'; }).length;
   var blocked = sessions.filter(function(s){ return s.blocked; }).length;
   var maxP    = sessions.reduce(function(m,s){ return Math.max(m,s.ports_scanned||0); },0);
   document.getElementById('sn-total').textContent   = sessions.length;
   document.getElementById('sn-probes').textContent  = probes;
-  document.getElementById('sn-normal').textContent  = normal;
+  document.getElementById('sn-normal').textContent      = normal;
+  document.getElementById('sn-suspicious').textContent  = suspicious;
   document.getElementById('sn-blocked').textContent = blocked;
   document.getElementById('sn-ports').textContent   = maxP;
   document.getElementById('sn-events').textContent  = events.length;
@@ -313,7 +320,7 @@ function renderSessions(){
   var sorted = sessions.slice().sort(function(a,b){ return b.score-a.score; });
   document.getElementById('sess-list').innerHTML = sorted.map(function(s){
     var pct   = Math.min(s.score*100,100);
-    var color = s.label==='probe'?'var(--red)':'var(--green)';
+    var color = s.label==='probe'?'var(--red)':s.label==='suspicious'?'var(--amber)':'var(--green)';
     var ruleTags = (s.rules||[]).map(function(r){
       return '<span class="rule-tag">'+r+'</span>';
     }).join('');
@@ -349,7 +356,7 @@ function renderSessions(){
 
     return '<div class="sess-card '+s.label+(s.blocked?' blocked':'')+'">'
       +'<div class="sess-ip">'+s.ip
-      +'<span class="badge badge-'+s.label+'">'+s.label.toUpperCase()+'</span>'
+      +'<span class="badge badge-'+(s.label==='suspicious'?'suspicious':s.label)+'">'+s.label.toUpperCase()+'</span>'
       +(s.blocked?'<span class="badge badge-blocked">BLOCKED</span>':'')
       +'</div>'
       +(ruleTags?'<div class="sess-rules">'+ruleTags+'</div>':'')
@@ -469,9 +476,9 @@ function renderGraph(){
     });
 
   // Service colors
-  var svcStroke = {ssh:'var(--cyan)',http:'var(--green)',https:'#64b4ff',ftp:'var(--amber)',telnet:'#ff6400',mysql:'#c864ff',smtp:'#ffc800'};
-  var svcFill   = {ssh:'rgba(0,229,255,.08)',http:'rgba(0,230,118,.08)',https:'rgba(100,180,255,.08)',ftp:'rgba(255,171,0,.10)',telnet:'rgba(255,100,0,.10)',mysql:'rgba(200,100,255,.08)',smtp:'rgba(255,200,0,.08)'};
-  var svcColors = {ssh:'rgba(0,229,255,.85)',http:'rgba(0,230,118,.8)',https:'rgba(100,180,255,.85)',ftp:'rgba(255,171,0,.85)',telnet:'rgba(255,100,0,.85)',mysql:'rgba(200,100,255,.8)',smtp:'rgba(255,200,0,.8)'};
+  var svcStroke = {ssh:'#9c27b0',http:'#2979ff',https:'#64b4ff',ftp:'#ff6d00',telnet:'#7c4dff',mysql:'#c864ff',smtp:'#ffd600'};
+  var svcFill   = {ssh:'rgba(156,39,176,.10)',http:'rgba(41,121,255,.08)',https:'rgba(100,180,255,.08)',ftp:'rgba(255,109,0,.10)',telnet:'rgba(124,77,255,.10)',mysql:'rgba(200,100,255,.08)',smtp:'rgba(255,214,0,.10)'};
+  var svcColors = {ssh:'rgba(156,39,176,.9)',http:'rgba(41,121,255,.9)',https:'rgba(100,180,255,.9)',ftp:'rgba(255,109,0,.9)',telnet:'rgba(124,77,255,.9)',mysql:'rgba(200,100,255,.85)',smtp:'rgba(255,214,0,.9)'};
 
   // Nodes
   var ng = g.selectAll('.node').data(nodes).enter().append('g')
@@ -484,8 +491,8 @@ function renderGraph(){
     var el=d3.select(this);
     if(d.type==='host'){
       el.append('circle').attr('r',15)
-        .attr('fill',d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)')
-        .attr('stroke',d.blocked?'#333':d.classification==='probe'?'var(--red)':'var(--green)')
+        .attr('fill',d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':d.classification==='suspicious'?'rgba(255,171,0,.1)':'rgba(0,230,118,.08)')
+        .attr('stroke',d.blocked?'#333':d.classification==='probe'?'var(--red)':d.classification==='suspicious'?'var(--amber)':'var(--green)')
         .attr('stroke-width',2)
         .attr('filter',d.classification==='probe'&&!d.blocked?'url(#glow)':null);
       if(d.classification==='probe'&&!d.blocked){
@@ -515,7 +522,7 @@ function renderGraph(){
     .attr('font-family','IBM Plex Mono').attr('font-size','11px')
     .attr('fill',function(d){
       if(d.blocked) return '#444';
-      if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)';
+      if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':d.classification==='suspicious'?'rgba(255,171,0,.9)':'rgba(0,230,118,.9)';
       if(d.type==='portrange') return 'rgba(41,121,255,.8)';
       return svcColors[d.label]||'rgba(255,171,0,.8)';
     })

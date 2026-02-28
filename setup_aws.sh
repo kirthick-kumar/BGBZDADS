@@ -6,6 +6,7 @@
 #
 # Port layout:
 #   22   = real SSH (UNCHANGED)
+#   25   = Postfix SMTP (real, for normal mail simulation)
 #   2222 = Cowrie SSH honeypot
 #   2223 = Cowrie Telnet honeypot
 #   80   = nginx HTTP
@@ -100,18 +101,46 @@ EOF
 sudo nginx -t 2>/dev/null && sudo systemctl reload nginx
 echo "[OK] nginx on port 80"
 
-# ── 4. iptables ──────────────────────────────────────────────
+# ── 4. Postfix SMTP ──────────────────────────────────────────
 echo ""
-echo "[4/6] Configuring iptables..."
+echo "[4/7] Installing Postfix SMTP on port 25..."
+sudo yum install -y postfix 2>/dev/null || true
+
+# Configure as a null-relay (accepts mail, logs it, doesn't deliver externally)
+sudo tee /etc/postfix/main.cf > /dev/null << 'PFEOF'
+myhostname = mail.prod-server-01.local
+mydomain = prod-server-01.local
+myorigin = $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = $myhostname, localhost.$mydomain, localhost
+relay_domains =
+mynetworks = 127.0.0.0/8
+smtpd_banner = $myhostname ESMTP Postfix
+disable_vrfy_command = yes
+smtpd_helo_required = yes
+mailbox_size_limit = 0
+message_size_limit = 10240000
+smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
+PFEOF
+
+sudo systemctl start postfix
+sudo systemctl enable postfix
+echo -n "    Postfix SMTP: "; sudo systemctl is-active postfix
+echo "[OK] SMTP on port 25"
+
+# ── 5. iptables ──────────────────────────────────────────────
+echo ""
+echo "[5/7] Configuring iptables..."
 sudo bash "$SCRIPT_DIR/setup_iptables.sh"
-for port in 22 80 2222 2223 8765 8080; do
+for port in 22 25 80 2222 2223 8765 8080; do
     sudo iptables -I INPUT -p tcp --dport $port -j ACCEPT 2>/dev/null || true
 done
 echo "[OK] iptables done"
 
-# ── 5. Detection agent ───────────────────────────────────────
+# ── 6. Detection agent ───────────────────────────────────────
 echo ""
-echo "[5/6] Deploying detection agent..."
+echo "[6/7] Deploying detection agent..."
 sudo mkdir -p $AGENT_DIR
 sudo chown ec2-user:ec2-user $AGENT_DIR
 cp "$SCRIPT_DIR/detection_agent.py" $AGENT_DIR/
@@ -158,13 +187,14 @@ sudo systemctl is-active probe-detector --quiet \
     && echo "[OK] probe-detector running" \
     || (echo "[!] probe-detector failed:" && sudo journalctl -u probe-detector -n 15 --no-pager)
 
-# ── 6. Verify ────────────────────────────────────────────────
+# ── 7. Verify ────────────────────────────────────────────────
 echo ""
-echo "[6/6] Final check..."
+echo "[7/7] Final check..."
 echo -n "  nginx:          "; sudo systemctl is-active nginx
 echo -n "  probe-detector: "; sudo systemctl is-active probe-detector
 echo -n "  Cowrie SSH:     "; sudo ss -tlnp | grep -c 2222 || echo 0
 echo -n "  Cowrie Telnet:  "; sudo ss -tlnp | grep -c 2223 || echo 0
+echo -n "  Postfix SMTP:   "; sudo systemctl is-active postfix
 sleep 2
 echo -n "  HTTP API:       "; curl -s http://localhost:8080/status \
     | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK -',len(d['sessions']),'sessions')" \
@@ -175,5 +205,5 @@ echo "======================================================="
 echo " DONE — $AWS_IP"
 echo " Dashboard: python3 -m http.server 3000"
 echo "   open: http://localhost:3000/dashboard.html?ip=${AWS_IP}"
-echo " Security Group ports: 22 80 2222 2223 8765 8080"
+echo " Security Group ports: 22 25 80 2222 2223 8765 8080"
 echo "======================================================="
