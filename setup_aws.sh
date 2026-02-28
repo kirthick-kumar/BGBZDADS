@@ -38,32 +38,27 @@ source cowrie-env/bin/activate
 pip install --quiet -r requirements.txt
 pip install -e . -q 2>/dev/null || true
 
-# Always generate a CLEAN config from scratch using configparser
-# This avoids ALL duplicate section/option errors from previous runs
-echo "    Writing clean cowrie.cfg via configparser..."
+# Write clean config using configparser — avoids ALL duplicate errors
+echo "    Writing clean cowrie.cfg..."
 python3 - << 'PYEOF'
 import configparser
 
-# Read the dist file as base
 cfg = configparser.ConfigParser(strict=False)
 cfg.read('etc/cowrie.cfg.dist')
 
-# Ensure sections exist
 for sec in ['honeypot', 'telnet', 'output_jsonlog']:
     if not cfg.has_section(sec):
         cfg.add_section(sec)
 
-# Set required values
-cfg.set('honeypot', 'hostname', 'prod-server-01')
+cfg.set('honeypot', 'hostname',         'prod-server-01')
 cfg.set('honeypot', 'listen_endpoints', 'tcp:2222:interface=0.0.0.0')
-cfg.set('telnet',   'enabled', 'true')
+cfg.set('telnet',   'enabled',          'true')
 cfg.set('telnet',   'listen_endpoints', 'tcp:2223:interface=0.0.0.0')
-cfg.set('output_jsonlog', 'enabled', 'true')
-cfg.set('output_jsonlog', 'logfile',  '${logpath}/cowrie.json')
+cfg.set('output_jsonlog', 'enabled',    'true')
+cfg.set('output_jsonlog', 'logfile',    'var/log/cowrie/cowrie.json')
 
 with open('etc/cowrie.cfg', 'w') as f:
     cfg.write(f)
-
 print("    cowrie.cfg written OK")
 PYEOF
 
@@ -94,7 +89,7 @@ echo "[3/6] Starting nginx..."
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
-# Filter AWS health checks from access log (15.177.x.x flood)
+# Filter AWS health checks (15.177.x.x) from nginx access log
 sudo tee /etc/nginx/conf.d/filter_healthchecks.conf > /dev/null << 'EOF'
 geo $loggable {
     default       1;
@@ -121,6 +116,7 @@ sudo mkdir -p $AGENT_DIR
 sudo chown ec2-user:ec2-user $AGENT_DIR
 cp "$SCRIPT_DIR/detection_agent.py" $AGENT_DIR/
 
+# Copy model files if present
 for f in gcn_autoencoder.pth scaler.pkl encoders.pkl threshold.txt; do
     [ -f "$SCRIPT_DIR/$f" ] && cp "$SCRIPT_DIR/$f" $AGENT_DIR/ && echo "    copied $f"
 done
@@ -158,8 +154,9 @@ sudo fuser -k 8080/tcp 2>/dev/null || true
 sleep 1
 sudo systemctl start probe-detector
 sleep 3
-sudo systemctl is-active probe-detector --quiet && echo "[OK] probe-detector running" || \
-    (echo "[!] probe-detector failed:" && sudo journalctl -u probe-detector -n 15 --no-pager)
+sudo systemctl is-active probe-detector --quiet \
+    && echo "[OK] probe-detector running" \
+    || (echo "[!] probe-detector failed:" && sudo journalctl -u probe-detector -n 15 --no-pager)
 
 # ── 6. Verify ────────────────────────────────────────────────
 echo ""
@@ -169,12 +166,14 @@ echo -n "  probe-detector: "; sudo systemctl is-active probe-detector
 echo -n "  Cowrie SSH:     "; sudo ss -tlnp | grep -c 2222 || echo 0
 echo -n "  Cowrie Telnet:  "; sudo ss -tlnp | grep -c 2223 || echo 0
 sleep 2
-echo -n "  HTTP API:       "; curl -s http://localhost:8080/status | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK -',len(d['sessions']),'sessions')" 2>/dev/null || echo "not ready"
+echo -n "  HTTP API:       "; curl -s http://localhost:8080/status \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK -',len(d['sessions']),'sessions')" \
+    2>/dev/null || echo "not ready yet"
 
 echo ""
 echo "======================================================="
 echo " DONE — $AWS_IP"
-echo " Open dashboard: python3 -m http.server 3000"
-echo "   then: http://localhost:3000/dashboard.html?ip=${AWS_IP}"
+echo " Dashboard: python3 -m http.server 3000"
+echo "   open: http://localhost:3000/dashboard.html?ip=${AWS_IP}"
 echo " Security Group ports: 22 80 2222 2223 8765 8080"
 echo "======================================================="

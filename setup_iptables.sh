@@ -1,50 +1,58 @@
 #!/bin/bash
 # ============================================================
-# iptables Setup
+# iptables Setup — Amazon Linux 2023
+# Uses iptables-legacy if nftables backend detected
 # Port 22  = real SSH (untouched)
-# Port 2222 = Cowrie SSH (direct, no redirect)
-# Port 2323 = Cowrie Telnet (direct, no redirect)
-# PROBE_LOG chain logs all new connections for detection
+# Port 2222 = Cowrie SSH (direct)
+# Port 2223 = Cowrie Telnet (direct)
 # ============================================================
 
-echo "[*] Setting up iptables PROBE_LOG chain..."
+echo "[*] Checking iptables backend..."
 
-# Flush and recreate PROBE_LOG chain cleanly
-iptables -F PROBE_LOG 2>/dev/null || true
-iptables -X PROBE_LOG 2>/dev/null || true
-iptables -N PROBE_LOG
-
-# Log with PROBE_LOG prefix → appears in /var/log/kern.log
-iptables -A PROBE_LOG -m limit --limit 60/min --limit-burst 100 \
-    -j LOG --log-prefix "PROBE_LOG " --log-level 4
-iptables -A PROBE_LOG -j RETURN
-
-# Remove old jump rules if any
-iptables -D INPUT -p tcp --syn -j PROBE_LOG 2>/dev/null || true
-iptables -D INPUT -p tcp -m state --state NEW \
-    -m multiport --dports 21,22,23,25,80,443,2222,2323,3306,5432,6379,8080 \
-    -j PROBE_LOG 2>/dev/null || true
-
-# Log ALL new TCP SYN packets (catches nmap wide port scans)
-iptables -I INPUT 1 -p tcp --syn -j PROBE_LOG
-
-# Also specifically log known service ports including Cowrie ports
-iptables -I INPUT 2 -p tcp -m state --state NEW \
-    -m multiport --dports 21,22,23,25,80,443,2222,2323,3306,5432,6379,8080 \
-    -j PROBE_LOG
-
-# NO NAT REDIRECTS — SSH stays on 22, Cowrie listens on 2222/2323 directly
-# Attackers who probe port 2222 or 2323 will hit Cowrie directly
-
-# Ensure kern.log gets iptables messages
-if ! grep -q "kern.warning" /etc/rsyslog.conf 2>/dev/null; then
-    echo 'kern.warning /var/log/kern.log' >> /etc/rsyslog.conf
-    systemctl restart rsyslog 2>/dev/null || true
-    echo "[✓] rsyslog kern.log rule added"
+# AL2023 uses nftables by default — switch to legacy
+if iptables -L PROBE_LOG -n 2>&1 | grep -q "incompatible"; then
+    echo "    nftables detected — switching to iptables-legacy"
+    sudo alternatives --set iptables /usr/sbin/iptables-legacy 2>/dev/null || \
+    sudo ln -sf /usr/sbin/iptables-legacy /usr/local/sbin/iptables 2>/dev/null || true
+    echo "    switched to iptables-legacy"
 fi
 
-echo "[✓] PROBE_LOG chain active — all new TCP connections logged"
-echo "[✓] Port 22 = real SSH (unchanged)"
-echo "[✓] Port 2222/2323 = Cowrie (direct)"
+echo "[*] Setting up PROBE_LOG chain..."
+
+# Flush and recreate chain cleanly
+sudo iptables -F PROBE_LOG 2>/dev/null || true
+sudo iptables -X PROBE_LOG 2>/dev/null || true
+sudo iptables -N PROBE_LOG
+
+# Log with PROBE_LOG prefix → /var/log/kern.log
+sudo iptables -A PROBE_LOG \
+    -m limit --limit 60/min --limit-burst 100 \
+    -j LOG --log-prefix "PROBE_LOG " --log-level 4
+sudo iptables -A PROBE_LOG -j RETURN
+
+# Remove old jump rules
+sudo iptables -D INPUT -p tcp --syn -j PROBE_LOG 2>/dev/null || true
+sudo iptables -D INPUT -p tcp -m state --state NEW \
+    -m multiport --dports 21,22,23,25,80,443,2222,2223,3306,5432,6379,8080 \
+    -j PROBE_LOG 2>/dev/null || true
+
+# Log ALL new TCP SYN (catches nmap wide scans)
+sudo iptables -I INPUT 1 -p tcp --syn -j PROBE_LOG
+
+# Also log specific service ports
+sudo iptables -I INPUT 2 -p tcp -m state --state NEW \
+    -m multiport --dports 21,22,23,25,80,443,2222,2223,3306,5432,6379,8080 \
+    -j PROBE_LOG
+
+# Ensure kern.log receives iptables messages
+if ! grep -q "kern.warning" /etc/rsyslog.conf 2>/dev/null; then
+    echo 'kern.warning /var/log/kern.log' | sudo tee -a /etc/rsyslog.conf
+    sudo systemctl restart rsyslog 2>/dev/null || true
+    echo "[OK] rsyslog kern.log rule added"
+fi
+
+echo "[OK] PROBE_LOG chain active"
+echo "[OK] Port 22 = real SSH (unchanged)"
+echo "[OK] Port 2222/2223 = Cowrie (direct, no redirect)"
 echo ""
 echo " Test: sudo tail -f /var/log/kern.log | grep PROBE_LOG"
