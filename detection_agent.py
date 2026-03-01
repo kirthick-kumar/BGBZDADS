@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore")
 """
 GCN Probe Detection Agent — Final
 ─────────────────────────────────────
@@ -26,6 +28,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import torch
+torch.set_num_threads(1)  # reduce RAM usage on t2.micro
 import torch.nn as nn
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
