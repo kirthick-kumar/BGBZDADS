@@ -191,22 +191,40 @@ def extract_features(ip: str, service: str, event_type: str,
         flag_str = "S0"   # SYN only, no response (nmap-style)
     flag_encoded = encode_categorical("flag", flag_str, fallback=9)  # 9=S0 default
 
-    # src_bytes / dst_bytes: estimate from event type
+    # ── HTTP-specific signals ────────────────────────────
+    # Detect brute force vs normal HTTP by POST rate + path diversity
+    http_posts  = st.get("http_posts",  deque())
+    http_paths  = st.get("http_paths",  deque())
+    recent_posts = sum(1 for t, in [(t,) for t in [x[0] for x in http_posts]] if now - t < 10.0)                    if http_posts else 0
+    # Count distinct paths in last 30s (path enumeration signal)
+    recent_path_times = [x for x in http_paths if now - x[0] < 30.0]
+    distinct_paths = len(set(x[1] for x in recent_path_times))
+    is_http_brute = recent_posts >= 3 or distinct_paths >= 5
+
+    # src_bytes / dst_bytes: POST with credentials = larger payload
     if "login.failed" in event_type:
         src_bytes, dst_bytes = 300, 200
     elif "login.success" in event_type:
         src_bytes, dst_bytes = 500, 1000
+    elif "http" in event_type and is_http_brute:
+        # Brute force POST: larger src_bytes (credential payload), low dst
+        src_bytes = min(200 + recent_posts * 80, 1400)
+        dst_bytes = 100   # server returns 401/403 quickly
     elif "http" in event_type:
-        src_bytes, dst_bytes = 400, 2000
+        src_bytes, dst_bytes = 400, 2000   # normal HTTP: small req, large response
     elif "command" in event_type:
         src_bytes, dst_bytes = 200, 500
     else:
-        src_bytes, dst_bytes = 100, 0   # SYN scan — minimal bytes
+        src_bytes, dst_bytes = 100, 0   # SYN scan
 
     # ── Auth/login features ───────────────────────────────
-    num_failed_logins = min(len(st["logins_failed"]), 10)
+    # For HTTP brute force: count POST attempts as failed logins
+    num_failed_logins = min(len(st["logins_failed"]) + recent_posts, 10)
     logged_in = 1 if "login.success" in event_type else 0
     is_guest_login = 1 if ("guest" in event_type or "anonymous" in event_type) else 0
+
+    # ── hot: number of "hot" indicators (suspicious access patterns) ─
+    hot = min(distinct_paths, 10)  # path enumeration raises hot count
 
     # ── Sliding window count features ────────────────────
     # count: connections to same host in last 2s
@@ -255,7 +273,7 @@ def extract_features(ip: str, service: str, event_type: str,
         0,                  # 6  land
         0,                  # 7  wrong_fragment
         0,                  # 8  urgent
-        0,                  # 9  hot
+        hot,                # 9  hot
         num_failed_logins,  # 10
         logged_in,          # 11
         0,                  # 12 num_compromised
@@ -386,6 +404,9 @@ ip_state = defaultdict(lambda: {
     "last_seen":            time.time(),
     "event_count":          0,
     "http_only":            True,   # kept for compatibility
+    "http_posts":           deque(), # timestamps of POST requests
+    "http_paths":           deque(), # (timestamp, path) for enumeration detection
+    "http_errors":          deque(), # timestamps of 4xx responses
     "gcn_prediction":       "N/A",
     "gcn_confidence":       0.0,
     "gcn_score":            0.0,
@@ -508,6 +529,14 @@ async def process_event(ip: str, event_type: str, service: str,
     if event_type in ("cowrie.login.failed", "cowrie.login.success"):
         if event_type == "cowrie.login.failed":
             st["logins_failed"].append((now,))
+
+    # Track HTTP-specific signals for model feature enrichment
+    if event_type == "http.request" and extra:
+        method = extra.get("method", "GET")
+        path   = extra.get("path", "/")
+        if method == "POST":
+            st["http_posts"].append((now,))
+        st["http_paths"].append((now, path))
 
     # Run heuristic detection
     is_probe, rules_hit, score = evaluate_rules(ip)

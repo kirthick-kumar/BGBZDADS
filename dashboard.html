@@ -94,7 +94,7 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
 .badge-gcn-na{background:rgba(50,50,50,.2);color:#444;border:1px solid #333;}
 .badge-suspicious{background:rgba(255,171,0,.12);color:var(--amber);border:1px solid rgba(255,171,0,.3);}
 .sess-rules{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
-.rule-tag{font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);
+.rule-tag{display:none;font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);
   border:1px solid rgba(255,171,0,.2);color:var(--amber);border-radius:2px;font-family:'IBM Plex Mono',monospace;}
 .sess-meta{font-size:11px;color:var(--dim2);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;}
 .score-track{margin-top:6px;height:2px;background:var(--border);border-radius:1px;}
@@ -321,9 +321,7 @@ function renderSessions(){
   document.getElementById('sess-list').innerHTML = sorted.map(function(s){
     var pct   = Math.min(s.score*100,100);
     var color = s.label==='probe'?'var(--red)':s.label==='suspicious'?'var(--amber)':'var(--green)';
-    var ruleTags = (s.rules||[]).map(function(r){
-      return '<span class="rule-tag">'+r+'</span>';
-    }).join('');
+    var ruleTags = ''; // rules hidden — detection reason not shown
     var svcs = (s.services||[]).join(' · ')||'—';
 
     // GCN panel
@@ -359,7 +357,7 @@ function renderSessions(){
       +'<span class="badge badge-'+(s.label==='suspicious'?'suspicious':s.label)+'">'+s.label.toUpperCase()+'</span>'
       +(s.blocked?'<span class="badge badge-blocked">BLOCKED</span>':'')
       +'</div>'
-      +(ruleTags?'<div class="sess-rules">'+ruleTags+'</div>':'')
+      // rules not displayed
       +'<div class="sess-meta">'
       +'<span>svcs:'+svcs+'</span>'
       +'<span>ports:'+( s.ports_scanned||0)+'</span>'
@@ -383,7 +381,7 @@ function renderLog(){
   document.getElementById('log-list').innerHTML = list.map(function(e){
     var ts  = new Date(e.timestamp).toLocaleTimeString('en',{hour12:false});
     var gcnSpan = '';
-    if(e.gcn_prediction && e.gcn_prediction!=='N/A'){
+    if(e.gcn_prediction && e.gcn_prediction!=='N/A' && e.gcn_prediction!=='ERR'){
       var cls = e.gcn_prediction==='PROBE'?'log-gcn-probe':'log-gcn-normal';
       gcnSpan = ' <span class="'+cls+'">[GCN:'+e.gcn_prediction+']</span>';
     }
