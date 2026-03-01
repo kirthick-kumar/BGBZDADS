@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SecureNet Portal — Login</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:#0a0e1a;
+  background-image:radial-gradient(ellipse at 20% 50%,rgba(41,121,255,.08) 0%,transparent 60%),
+                   radial-gradient(ellipse at 80% 20%,rgba(0,229,255,.05) 0%,transparent 50%);
+  font-family:'Segoe UI',system-ui,sans-serif;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,229,255,.015) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,229,255,.015) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.card{
+  width:420px;padding:48px 40px;
+  background:rgba(6,13,26,.95);
+  border:1px solid rgba(41,121,255,.2);
+  border-radius:8px;
+  box-shadow:0 0 60px rgba(0,0,0,.6),0 0 0 1px rgba(0,229,255,.05);
+  position:relative;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,#2979ff,#00e5ff,transparent);
+  border-radius:8px 8px 0 0;
+}
+.brand{text-align:center;margin-bottom:36px;}
+.brand-icon{
+  width:52px;height:52px;margin:0 auto 14px;
+  background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+}
+.brand-name{
+  font-size:20px;font-weight:700;
+  background:linear-gradient(135deg,#2979ff,#00e5ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.5px;
+}
+.brand-sub{font-size:12px;color:#3a5575;margin-top:4px;letter-spacing:1.5px;text-transform:uppercase;}
+h2{font-size:15px;color:#b0cce0;font-weight:500;margin-bottom:24px;text-align:center;}
+.field{margin-bottom:18px;}
+label{display:block;font-size:11px;color:#3a5575;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+input{
+  width:100%;padding:11px 14px;
+  background:rgba(10,22,40,.8);
+  border:1px solid rgba(23,45,80,.8);
+  border-radius:5px;color:#b0cce0;font-size:14px;
+  transition:border-color .2s,box-shadow .2s;outline:none;
+}
+input:focus{border-color:rgba(41,121,255,.5);box-shadow:0 0 0 3px rgba(41,121,255,.08);}
+input::placeholder{color:#2a4060;}
+.forgot{text-align:right;margin-top:6px;}
+.forgot a{font-size:11px;color:#2979ff;text-decoration:none;opacity:.7;}
+.forgot a:hover{opacity:1;}
+.btn-login{
+  width:100%;padding:12px;margin-top:8px;
+  background:linear-gradient(135deg,#1a50c8,#2979ff);
+  border:none;border-radius:5px;
+  color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;
+  cursor:pointer;transition:all .2s;
+}
+.btn-login:hover{background:linear-gradient(135deg,#2060d8,#3989ff);box-shadow:0 4px 20px rgba(41,121,255,.3);}
+.btn-login:active{transform:scale(.98);}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#2a4060;font-size:11px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#0e2040;}
+.btn-guest{
+  width:100%;padding:10px;
+  background:transparent;border:1px solid #172d50;
+  border-radius:5px;color:#3a5575;font-size:13px;
+  cursor:pointer;transition:all .2s;
+}
+.btn-guest:hover{border-color:#2979ff;color:#2979ff;}
+.footer{text-align:center;margin-top:28px;font-size:11px;color:#2a4060;}
+.footer span{color:#1a3a6a;}
+.status-bar{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-bottom:20px;padding:6px 12px;
+  background:rgba(0,230,118,.04);border:1px solid rgba(0,230,118,.1);
+  border-radius:4px;font-size:11px;color:#3a7a55;
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#00e676;box-shadow:0 0 6px #00e676;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.error{
+  display:none;padding:10px 14px;margin-bottom:16px;
+  background:rgba(255,23,68,.06);border:1px solid rgba(255,23,68,.2);
+  border-radius:4px;font-size:12px;color:#ff6b6b;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="brand-icon">🔒</div>
+    <div class="brand-name">SecureNet</div>
+    <div class="brand-sub">Enterprise Portal</div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span>System operational — All services normal</span>
+  </div>
+
+  <h2>Sign in to your account</h2>
+
+  <div class="error" id="err">Invalid username or password. Please try again.</div>
+
+  <form onsubmit="doLogin(event)">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Enter password" autocomplete="current-password"/>
+      <div class="forgot"><a href="#">Forgot password?</a></div>
+    </div>
+    <button class="btn-login" type="submit">Sign In</button>
+  </form>
+
+  <div class="divider">or</div>
+  <button class="btn-guest" onclick="guestLogin()">Continue as Guest</button>
+
+  <div class="footer">
+    Protected by <span>SecureNet Shield v2.4</span> &nbsp;·&nbsp;
+    <span>TLS 1.3</span> &nbsp;·&nbsp;
+    <span>SOC 2 Type II</span>
+  </div>
+</div>
+
+<script>
+function doLogin(e){
+  e.preventDefault();
+  var u=document.getElementById('username').value;
+  var p=document.getElementById('password').value;
+  if(!u||!p){ document.getElementById('err').style.display='block'; return; }
+  // Always reject for demo — shows failed login
+  document.getElementById('err').style.display='block';
+}
+function guestLogin(){
+  window.location.href='/guest';
+}
+</script>
+</body>
+</html>

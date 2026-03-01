@@ -366,7 +366,7 @@ ip_state = defaultdict(lambda: {
     "first_seen":           time.time(),
     "last_seen":            time.time(),
     "event_count":          0,
-    "http_only":            True,
+    "http_only":            True,   # kept for compatibility
     "gcn_prediction":       "N/A",
     "gcn_confidence":       0.0,
     "gcn_score":            0.0,
@@ -507,20 +507,16 @@ async def process_event(ip: str, event_type: str, service: str,
     #   - Auto-block only when heuristic rules fire (not GCN alone)
     gcn_says_probe = gcn["gcn_prediction"] == "PROBE"
 
-    if is_probe:
+    if is_probe or gcn_says_probe:
         st["label"] = "probe"
         for r in rules_hit:
             st["triggered_rules"].add(r)
         if gcn_says_probe:
             st["triggered_rules"].add("GCN Anomaly")
-        # Auto-block only on heuristic rules, never on GCN alone
-        if ip not in blocked_ips and not st["http_only"]:
+        # Block on heuristic OR GCN probe detection
+        if ip not in blocked_ips:
             block_ip(ip)
-    elif gcn_says_probe and not st["http_only"]:
-        # GCN says probe but heuristics don't — mark suspicious but don't block
-        st["label"] = "suspicious"
-        st["triggered_rules"].add("GCN Anomaly")
-    elif st["label"] not in ("probe", "suspicious"):
+    elif st["label"] != "probe":
         st["label"] = "normal"
 
     # Log event
