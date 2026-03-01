@@ -199,32 +199,35 @@ def extract_features(ip: str, service: str, event_type: str,
     # Count distinct paths in last 30s (path enumeration signal)
     recent_path_times = [x for x in http_paths if now - x[0] < 30.0]
     distinct_paths = len(set(x[1] for x in recent_path_times))
-    is_http_brute = recent_posts >= 3 or distinct_paths >= 5
+    # Only flag as brute force after sustained attack — not single POSTs
+    is_http_brute  = recent_posts >= 8    # 8+ POSTs in 10s = brute force
+    is_path_enum   = distinct_paths >= 8  # 8+ distinct paths in 30s = scanner
 
-    # src_bytes / dst_bytes: POST with credentials = larger payload
+    # src_bytes / dst_bytes
     if "login.failed" in event_type:
         src_bytes, dst_bytes = 300, 200
     elif "login.success" in event_type:
         src_bytes, dst_bytes = 500, 1000
     elif "http" in event_type and is_http_brute:
-        # Brute force POST: larger src_bytes (credential payload), low dst
-        src_bytes = min(200 + recent_posts * 80, 1400)
-        dst_bytes = 100   # server returns 401/403 quickly
+        # Sustained brute force: high src_bytes, low dst (401 responses)
+        src_bytes = min(300 + recent_posts * 50, 1400)
+        dst_bytes = 80
     elif "http" in event_type:
-        src_bytes, dst_bytes = 400, 2000   # normal HTTP: small req, large response
+        # Normal HTTP including occasional POST — treat as normal
+        src_bytes, dst_bytes = 400, 2000
     elif "command" in event_type:
         src_bytes, dst_bytes = 200, 500
     else:
-        src_bytes, dst_bytes = 100, 0   # SYN scan
+        src_bytes, dst_bytes = 100, 0
 
     # ── Auth/login features ───────────────────────────────
-    # For HTTP brute force: count POST attempts as failed logins
-    num_failed_logins = min(len(st["logins_failed"]) + recent_posts, 10)
-    logged_in = 1 if "login.success" in event_type else 0
-    is_guest_login = 1 if ("guest" in event_type or "anonymous" in event_type) else 0
+    # Only count POSTs as failed logins once brute force threshold crossed
+    num_failed_logins = min(len(st["logins_failed"]) + (recent_posts if is_http_brute else 0), 10)
+    logged_in     = 1 if "login.success" in event_type else 0
+    is_guest_login= 1 if ("guest" in event_type or "anonymous" in event_type) else 0
 
-    # ── hot: number of "hot" indicators (suspicious access patterns) ─
-    hot = min(distinct_paths, 10)  # path enumeration raises hot count
+    # ── hot: only raise after confirmed path enumeration ─────
+    hot = min(distinct_paths, 10) if is_path_enum else 0
 
     # ── Sliding window count features ────────────────────
     # count: connections to same host in last 2s
