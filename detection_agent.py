@@ -309,12 +309,31 @@ def run_gcn_inference(ip: str, service: str, event_type: str,
     try:
         # Extract + scale features
         raw_features = extract_features(ip, service, event_type, dst_port, st)
-        scaled = scaler.transform(raw_features.reshape(1, -1))  # (1, 38)
+
+        # Use DataFrame with column names to match how scaler was fitted
+        _feat_cols = [
+            'duration','protocol_type','service','flag','src_bytes','dst_bytes','land',
+            'wrong_fragment','urgent','hot','num_failed_logins','logged_in',
+            'num_compromised','root_shell','su_attempted','num_root','num_file_creations',
+            'num_shells','num_access_files','num_outbound_cmds','is_host_login',
+            'is_guest_login','count','srv_count','serror_rate','srv_serror_rate',
+            'rerror_rate','srv_rerror_rate','same_srv_rate','diff_srv_rate',
+            'srv_diff_host_rate','dst_host_count','dst_host_srv_count',
+            'dst_host_same_srv_rate','dst_host_diff_srv_rate',
+            'dst_host_same_src_port_rate','dst_host_srv_diff_host_rate',
+            'dst_host_serror_rate','dst_host_srv_serror_rate',
+            'dst_host_rerror_rate','dst_host_srv_rerror_rate',
+        ][:len(raw_features)]
+        import pandas as _pd
+        _df = _pd.DataFrame(raw_features.reshape(1, -1), columns=_feat_cols)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            scaled = scaler.transform(_df)  # (1, 41)
 
         # Build minimal bipartite graph: 1 host + 1 service node
         host_feat = torch.tensor(scaled, dtype=torch.float32)             # (1, 41)
         svc_feat  = torch.zeros((1, 41), dtype=torch.float32)             # (1, 41)
-        x         = torch.cat([host_feat, svc_feat], dim=0).to(DEVICE)   # (2, 38)
+        x         = torch.cat([host_feat, svc_feat], dim=0).to(DEVICE)   # (2, 41)
 
         # Edge: host(0) ↔ service(1)
         edge_index = torch.tensor([[0, 1], [1, 0]], dtype=torch.long).to(DEVICE)

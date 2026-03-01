@@ -486,13 +486,14 @@ echo "  7)  Slow stealth scan          → Gradual graph build"
 echo "  8)  OS fingerprint scan        → Aggressive detection"
 echo "  9)  Vulnerability script scan  → Banner grab + scripts"
 echo "  10) Distributed attack sim     → Multi-wave attack"
-echo "  11) HTTP path enumeration      → HTTP attack node"
-echo "  12) Normal SMTP simulation     → NORMAL node (not blocked)"
-echo "  13) SMTP probe / relay test    → Multi-Service + Probe"
-echo "  14) SMTP brute force           → Brute Force rule"
-echo "  15) FULL DEMO (all phases)     ← USE THIS FOR PANEL"
+echo "  11) HTTP path enumeration      → HTTP scan node"
+echo "  12) HTTP login brute force     → POST /login attack"
+echo "  13) Normal SMTP send           → Legitimate mail"
+echo "  14) SMTP probe / relay test    → SMTP probe node"
+echo "  15) SMTP user enumeration      → Brute Force rule"
+echo "  16) FULL DEMO (all phases)     ← USE THIS FOR PANEL"
 echo ""
-read -p "Choice [1-15]: " c
+read -p "Choice [1-16]: " c
 case $c in
     1)  attack_portscan ;;
     2)  attack_service_scan ;;
@@ -504,10 +505,11 @@ case $c in
     8)  attack_os_scan ;;
     9)  attack_vuln_scan ;;
     10) attack_distributed ;;
-    11) attack_http_attack ;;
-    12) attack_smtp_normal ;;
-    13) attack_smtp_probe ;;
-    14) attack_smtp_brute ;;
-    15) attack_full_demo ;;
+    11) attack_http_enum ;;
+    12) attack_http_login_brute ;;
+    13) attack_smtp_normal ;;
+    14) attack_smtp_probe ;;
+    15) attack_smtp_enum ;;
+    16) attack_full_demo ;;
     *)  echo "Invalid choice"; exit 1 ;;
 esac
