@@ -144,7 +144,7 @@ NSL_COLUMNS = [
 # Service name → NSL-KDD service string mapping
 SERVICE_MAP = {
     "ssh": "ssh", "http": "http", "https": "http", "ftp": "ftp",
-    "telnet": "telnet", "smtp": "smtp_25", "mysql": "private",
+    "telnet": "telnet", "smtp": "smtp", "mysql": "private",
     "postgres": "private", "redis": "private", "http-alt": "http_443",
 }
 
@@ -686,7 +686,7 @@ def get_sessions():
 # ─────────────────────────────────────────────────────────
 KERN_RE = re.compile(r'SRC=(\S+)\s+DST=\S+\s+.*?DPT=(\d+)', re.IGNORECASE)
 SERVICE_PORT_MAP = {
-    22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp", 2222: "ssh", 2223: "telnet", 587: "smtp", 465: "smtp", 2224: "telnet", 587: "smtp", 465: "smtp",
+    22: "ssh", 23: "telnet", 21: "ftp", 25: "smtp", 2222: "ssh", 2223: "telnet", 587: "smtp", 465: "smtp", 2525: "smtp",
     80: "http", 443: "https", 3306: "mysql",
     5432: "postgres", 6379: "redis", 8080: "http-alt",
 }
