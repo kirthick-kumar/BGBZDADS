@@ -894,6 +894,10 @@ def make_http_app():
 # MAIN
 # ─────────────────────────────────────────────────────────
 async def main():
+    # Ensure kern.log is readable by this process
+    import subprocess
+    subprocess.run(["sudo", "chmod", "644", "/var/log/kern.log"], 
+                   capture_output=True)
     ws_srv = await websockets.serve(ws_handler, "0.0.0.0", WS_PORT)
     print(f"[✓] WebSocket  ws://0.0.0.0:{WS_PORT}")
 
