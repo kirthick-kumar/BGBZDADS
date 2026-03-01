@@ -3,151 +3,303 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>SecureNet Portal — Login</title>
+<title>Anna University — Academic Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inconsolata:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
+:root{
+  --bg:#f2efe9;
+  --ink:#1a1208;
+  --rust:#c44b1b;
+  --rust2:#e05c28;
+  --sand:#e8e0d0;
+  --sand2:#d4c9b4;
+  --muted:#7a6e60;
+  --white:#ffffff;
+}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:#0a0e1a;
-  background-image:radial-gradient(ellipse at 20% 50%,rgba(41,121,255,.08) 0%,transparent 60%),
-                   radial-gradient(ellipse at 80% 20%,rgba(0,229,255,.05) 0%,transparent 50%);
-  font-family:'Segoe UI',system-ui,sans-serif;
+html,body{height:100%;background:var(--bg);}
+body{font-family:'Syne',sans-serif;color:var(--ink);overflow:hidden;}
+
+/* ── LAYOUT ── */
+.wrap{display:grid;grid-template-columns:52% 48%;height:100vh;}
+
+/* ── LEFT ── */
+.left{
+  position:relative;overflow:hidden;
+  background:var(--ink);
+  padding:0;
 }
-body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(0,229,255,.015) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(0,229,255,.015) 1px,transparent 1px);
-  background-size:40px 40px;
+
+/* giant number watermark */
+.watermark{
+  position:absolute;right:-60px;top:50%;transform:translateY(-50%);
+  font-size:380px;font-weight:800;line-height:1;
+  color:rgba(255,255,255,.03);
+  user-select:none;pointer-events:none;letter-spacing:-20px;
 }
-.card{
-  width:420px;padding:48px 40px;
-  background:rgba(6,13,26,.95);
-  border:1px solid rgba(41,121,255,.2);
-  border-radius:8px;
-  box-shadow:0 0 60px rgba(0,0,0,.6),0 0 0 1px rgba(0,229,255,.05);
+
+/* diagonal stripe */
+.stripe{
+  position:absolute;bottom:0;left:0;right:0;height:180px;
+  background:var(--rust);
+  clip-path:polygon(0 60px, 100% 0, 100% 180px, 0 180px);
+}
+
+.left-inner{
+  position:relative;z-index:2;
+  height:100%;display:flex;flex-direction:column;
+  padding:44px 48px;
+}
+
+.logo-row{display:flex;align-items:center;gap:16px;margin-bottom:auto;}
+.logo-box{
+  width:48px;height:48px;border:2px solid var(--rust);
+  display:flex;align-items:center;justify-content:center;
   position:relative;
 }
-.card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,#2979ff,#00e5ff,transparent);
-  border-radius:8px 8px 0 0;
+.logo-box::after{
+  content:'';position:absolute;width:48px;height:48px;
+  border:2px solid rgba(196,75,27,.3);
+  transform:translate(5px,5px);
 }
-.brand{text-align:center;margin-bottom:36px;}
-.brand-icon{
-  width:52px;height:52px;margin:0 auto 14px;
-  background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);
-  border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-size:24px;
+.logo-box span{font-size:20px;font-weight:800;color:var(--rust);}
+.logo-text{}
+.logo-name{font-size:13px;font-weight:700;color:white;letter-spacing:2px;text-transform:uppercase;}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:1.5px;margin-top:2px;}
+
+.hero{flex:1;display:flex;flex-direction:column;justify-content:center;padding-bottom:60px;}
+.hero-eyebrow{
+  font-family:'Inconsolata',monospace;font-size:11px;
+  color:var(--rust);letter-spacing:3px;text-transform:uppercase;
+  margin-bottom:20px;display:flex;align-items:center;gap:10px;
 }
-.brand-name{
-  font-size:20px;font-weight:700;
-  background:linear-gradient(135deg,#2979ff,#00e5ff);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  letter-spacing:.5px;
+.hero-eyebrow::before{content:'';width:28px;height:1px;background:var(--rust);}
+.hero-h1{
+  font-size:58px;font-weight:800;line-height:1.0;
+  color:white;margin-bottom:24px;letter-spacing:-1px;
 }
-.brand-sub{font-size:12px;color:#3a5575;margin-top:4px;letter-spacing:1.5px;text-transform:uppercase;}
-h2{font-size:15px;color:#b0cce0;font-weight:500;margin-bottom:24px;text-align:center;}
-.field{margin-bottom:18px;}
-label{display:block;font-size:11px;color:#3a5575;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.hero-h1 em{color:var(--rust);font-style:normal;display:block;}
+.hero-body{
+  font-family:'Inconsolata',monospace;font-size:13px;
+  color:rgba(255,255,255,.4);line-height:1.8;max-width:320px;
+  font-weight:300;
+}
+
+.stats-row{
+  display:flex;gap:0;border-top:1px solid rgba(255,255,255,.08);
+  padding-top:28px;
+}
+.s-item{flex:1;padding-right:28px;border-right:1px solid rgba(255,255,255,.06);}
+.s-item:last-child{padding-right:0;border-right:none;padding-left:28px;}
+.s-item:nth-child(2){padding:0 28px;}
+.s-n{font-size:26px;font-weight:800;color:var(--rust);}
+.s-l{font-family:'Inconsolata',monospace;font-size:10px;color:rgba(255,255,255,.3);
+  text-transform:uppercase;letter-spacing:1.5px;margin-top:3px;}
+
+/* ── RIGHT ── */
+.right{
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  padding:44px 52px;
+  position:relative;
+}
+.right::before{
+  content:'';position:absolute;top:0;left:0;bottom:0;width:1px;
+  background:linear-gradient(to bottom,transparent,var(--sand2) 30%,var(--sand2) 70%,transparent);
+}
+
+.right-header{margin-bottom:40px;}
+.right-header h2{font-size:28px;font-weight:800;color:var(--ink);margin-bottom:6px;}
+.right-header p{font-family:'Inconsolata',monospace;font-size:12px;color:var(--muted);letter-spacing:.5px;}
+
+/* tab strip */
+.tabs{
+  display:flex;gap:0;margin-bottom:36px;
+  border-bottom:2px solid var(--sand2);
+}
+.tab{
+  padding:10px 20px;font-size:12px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;
+}
+.tab.active{color:var(--rust);border-bottom-color:var(--rust);}
+.tab:hover:not(.active){color:var(--ink);}
+
+/* form */
+.field{margin-bottom:22px;}
+.field-label{
+  font-family:'Inconsolata',monospace;font-size:10px;font-weight:500;
+  color:var(--muted);letter-spacing:2px;text-transform:uppercase;
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;
+}
+.field-label a{color:var(--rust);text-decoration:none;font-size:10px;}
+.field-label a:hover{text-decoration:underline;}
 input{
-  width:100%;padding:11px 14px;
-  background:rgba(10,22,40,.8);
-  border:1px solid rgba(23,45,80,.8);
-  border-radius:5px;color:#b0cce0;font-size:14px;
-  transition:border-color .2s,box-shadow .2s;outline:none;
+  width:100%;padding:13px 16px;
+  background:var(--white);
+  border:1.5px solid var(--sand2);
+  font-family:'Inconsolata',monospace;font-size:14px;color:var(--ink);
+  outline:none;transition:border-color .15s;
+  border-radius:0;
 }
-input:focus{border-color:rgba(41,121,255,.5);box-shadow:0 0 0 3px rgba(41,121,255,.08);}
-input::placeholder{color:#2a4060;}
-.forgot{text-align:right;margin-top:6px;}
-.forgot a{font-size:11px;color:#2979ff;text-decoration:none;opacity:.7;}
-.forgot a:hover{opacity:1;}
-.btn-login{
-  width:100%;padding:12px;margin-top:8px;
-  background:linear-gradient(135deg,#1a50c8,#2979ff);
-  border:none;border-radius:5px;
-  color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;
-  cursor:pointer;transition:all .2s;
+input:focus{border-color:var(--rust);}
+input::placeholder{color:var(--sand2);}
+
+.btn-submit{
+  width:100%;padding:14px;margin-top:6px;
+  background:var(--rust);border:none;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:white;
+  cursor:pointer;transition:background .15s;
+  position:relative;overflow:hidden;
 }
-.btn-login:hover{background:linear-gradient(135deg,#2060d8,#3989ff);box-shadow:0 4px 20px rgba(41,121,255,.3);}
-.btn-login:active{transform:scale(.98);}
-.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#2a4060;font-size:11px;}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:#0e2040;}
-.btn-guest{
-  width:100%;padding:10px;
-  background:transparent;border:1px solid #172d50;
-  border-radius:5px;color:#3a5575;font-size:13px;
-  cursor:pointer;transition:all .2s;
+.btn-submit:hover{background:var(--rust2);}
+.btn-submit::after{
+  content:'→';position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  font-size:16px;transition:right .2s;
 }
-.btn-guest:hover{border-color:#2979ff;color:#2979ff;}
-.footer{text-align:center;margin-top:28px;font-size:11px;color:#2a4060;}
-.footer span{color:#1a3a6a;}
-.status-bar{
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  margin-bottom:20px;padding:6px 12px;
-  background:rgba(0,230,118,.04);border:1px solid rgba(0,230,118,.1);
-  border-radius:4px;font-size:11px;color:#3a7a55;
-}
-.status-dot{width:6px;height:6px;border-radius:50%;background:#00e676;box-shadow:0 0 6px #00e676;animation:blink 2s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.btn-submit:hover::after{right:14px;}
+
 .error{
-  display:none;padding:10px 14px;margin-bottom:16px;
-  background:rgba(255,23,68,.06);border:1px solid rgba(255,23,68,.2);
-  border-radius:4px;font-size:12px;color:#ff6b6b;
+  display:none;
+  font-family:'Inconsolata',monospace;font-size:12px;
+  color:var(--rust);letter-spacing:.5px;
+  padding:10px 14px;border-left:3px solid var(--rust);
+  background:rgba(196,75,27,.06);margin-bottom:20px;
 }
+
+.or-row{display:flex;align-items:center;gap:14px;margin:18px 0;
+  font-family:'Inconsolata',monospace;font-size:11px;color:var(--sand2);}
+.or-row::before,.or-row::after{content:'';flex:1;height:1px;background:var(--sand2);}
+
+.btn-guest{
+  width:100%;padding:12px;
+  background:transparent;border:1.5px solid var(--sand2);
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  cursor:pointer;transition:all .15s;
+}
+.btn-guest:hover{border-color:var(--ink);color:var(--ink);}
+
+.right-footer{
+  margin-top:auto;padding-top:24px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--sand);
+}
+.right-footer span{font-family:'Inconsolata',monospace;font-size:11px;color:var(--sand2);}
+.right-footer a{font-family:'Inconsolata',monospace;font-size:11px;color:var(--muted);text-decoration:none;}
+.right-footer a:hover{color:var(--rust);}
+
+/* load animation */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+.left-inner{animation:fadeUp .5s ease both;}
+.right{animation:fadeUp .5s ease .1s both;}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="brand">
-    <div class="brand-icon">🔒</div>
-    <div class="brand-name">SecureNet</div>
-    <div class="brand-sub">Enterprise Portal</div>
+<div class="wrap">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="watermark">AU</div>
+    <div class="stripe"></div>
+    <div class="left-inner">
+      <div class="logo-row">
+        <div class="logo-box"><span>A</span></div>
+        <div class="logo-text">
+          <div class="logo-name">Anna University</div>
+          <div class="logo-sub">Est. 1978 · NIRF Rank #14</div>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-eyebrow">Academic Information System</div>
+        <div class="hero-h1">Student<em>Portal</em></div>
+        <div class="hero-body">
+          Access your academic records, course registrations,<br/>
+          timetables, examination schedules, and fee details.
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="s-item">
+          <div class="s-n">10K+</div>
+          <div class="s-l">Students</div>
+        </div>
+        <div class="s-item">
+          <div class="s-n">200+</div>
+          <div class="s-l">Faculty</div>
+        </div>
+        <div class="s-item">
+          <div class="s-n">A++</div>
+          <div class="s-l">NAAC</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="status-bar">
-    <div class="status-dot"></div>
-    <span>System operational — All services normal</span>
-  </div>
-
-  <h2>Sign in to your account</h2>
-
-  <div class="error" id="err">Invalid username or password. Please try again.</div>
-
-  <form onsubmit="doLogin(event)">
-    <div class="field">
-      <label>Username</label>
-      <input type="text" id="username" placeholder="Enter username" autocomplete="username"/>
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="right-header">
+      <h2>Sign In</h2>
+      <p>// Use your NIT credentials to access the portal</p>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="Enter password" autocomplete="current-password"/>
-      <div class="forgot"><a href="#">Forgot password?</a></div>
+
+    <div class="tabs">
+      <div class="tab active">Student</div>
+      <div class="tab">Faculty</div>
+      <div class="tab">Admin</div>
     </div>
-    <button class="btn-login" type="submit">Sign In</button>
-  </form>
 
-  <div class="divider">or</div>
-  <button class="btn-guest" onclick="guestLogin()">Continue as Guest</button>
+    <div class="error" id="err">Access denied — invalid credentials. Try again.</div>
 
-  <div class="footer">
-    Protected by <span>SecureNet Shield v2.4</span> &nbsp;·&nbsp;
-    <span>TLS 1.3</span> &nbsp;·&nbsp;
-    <span>SOC 2 Type II</span>
+    <form onsubmit="doLogin(event)">
+      <div class="field">
+        <div class="field-label">Roll Number</div>
+        <input type="text" id="username" placeholder="e.g. 227312001" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <div class="field-label">
+          Password
+          <a href="#">Reset password</a>
+        </div>
+        <input type="password" id="password" placeholder="••••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-submit" type="submit">Authenticate</button>
+    </form>
+
+    <div class="or-row">or</div>
+    <button class="btn-guest" onclick="window.location.href='/guest'">Guest Access</button>
+
+    <div class="right-footer">
+      <span>Anna University AIS v4.2.1</span>
+      <div style="display:flex;gap:16px;">
+        <a href="#">IT Support</a>
+        <a href="#">Privacy</a>
+        <a href="#">NIRF</a>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
 function doLogin(e){
   e.preventDefault();
-  var u=document.getElementById('username').value;
-  var p=document.getElementById('password').value;
-  if(!u||!p){ document.getElementById('err').style.display='block'; return; }
-  // Always reject for demo — shows failed login
-  document.getElementById('err').style.display='block';
+  var u = document.getElementById('username').value.trim();
+  var p = document.getElementById('password').value;
+  if(u === 'root' && p === 'root'){
+    window.location.href = '/home';
+    return;
+  }
+  document.getElementById('err').style.display = 'block';
 }
-function guestLogin(){
-  window.location.href='/guest';
-}
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    t.classList.add('active');
+  });
+});
 </script>
 </body>
 </html>

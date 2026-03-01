@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Anna University — Student Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inconsolata:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f2efe9;--ink:#1a1208;--rust:#c44b1b;--rust2:#e05c28;
+  --sand:#e8e0d0;--sand2:#d4c9b4;--muted:#7a6e60;
+  --white:#fff;--green:#1a6e3a;--blue:#1a4a8a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:'Syne',sans-serif;color:var(--ink);}
+
+/* TOPBAR */
+.topbar{
+  background:var(--ink);height:54px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;position:sticky;top:0;z-index:100;
+}
+.tl{display:flex;align-items:center;gap:14px;}
+.t-box{width:32px;height:32px;border:1.5px solid var(--rust);display:flex;align-items:center;justify-content:center;}
+.t-box span{font-size:13px;font-weight:800;color:var(--rust);}
+.t-name{font-size:13px;font-weight:700;color:white;letter-spacing:2px;text-transform:uppercase;}
+.t-sub{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-top:1px;}
+.tr{display:flex;align-items:center;gap:16px;}
+.tr-info{text-align:right;}
+.tr-name{font-size:12px;font-weight:700;color:white;letter-spacing:.5px;}
+.tr-roll{font-family:'Inconsolata',monospace;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:1px;}
+.avatar{width:32px;height:32px;background:var(--rust);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;cursor:pointer;}
+.logout{padding:5px 14px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.logout:hover{color:white;border-color:rgba(255,255,255,.4);}
+
+/* BREADCRUMB */
+.breadcrumb{padding:10px 32px;font-family:'Inconsolata',monospace;font-size:11px;color:var(--muted);background:var(--white);border-bottom:1px solid var(--sand);}
+.breadcrumb strong{color:var(--ink);}
+
+/* MAIN */
+.main{padding:28px 32px;max-width:1200px;margin:0 auto;}
+
+/* ALERT BAR */
+.alert{
+  background:var(--ink);padding:12px 20px;
+  display:flex;align-items:center;gap:14px;margin-bottom:24px;
+  border-left:4px solid var(--rust);
+}
+.alert-tag{font-family:'Inconsolata',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--rust);font-weight:500;flex-shrink:0;}
+.alert-text{font-family:'Inconsolata',monospace;font-size:12px;color:rgba(255,255,255,.6);}
+.alert-close{margin-left:auto;color:rgba(255,255,255,.3);cursor:pointer;font-size:18px;line-height:1;}
+
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--sand2);border:1px solid var(--sand2);margin-bottom:24px;}
+.sc{background:var(--white);padding:22px 24px;}
+.sc-top{display:flex;justify-content:space-between;margin-bottom:14px;}
+.sc-icon{font-size:20px;}
+.sc-delta{font-family:'Inconsolata',monospace;font-size:10px;letter-spacing:1px;}
+.sc-delta.up{color:var(--green);}
+.sc-delta.down{color:var(--rust);}
+.sc-val{font-size:32px;font-weight:800;line-height:1;}
+.sc-lbl{font-family:'Inconsolata',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:1fr 340px;gap:20px;}
+
+/* CARD */
+.card{background:var(--white);border:1px solid var(--sand2);}
+.ch{padding:14px 20px;border-bottom:1px solid var(--sand);display:flex;justify-content:space-between;align-items:center;}
+.ch h3{font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.ch a{font-family:'Inconsolata',monospace;font-size:11px;color:var(--rust);text-decoration:none;cursor:pointer;}
+table{width:100%;border-collapse:collapse;}
+th{font-family:'Inconsolata',monospace;font-size:9px;font-weight:500;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:10px 20px;text-align:left;background:#faf8f4;border-bottom:1px solid var(--sand);}
+td{padding:12px 20px;font-size:13px;border-bottom:1px solid #f5f2ec;}
+td:first-child{font-weight:600;}
+tr:last-child td{border-bottom:none;}
+
+.g-tag{display:inline-block;padding:2px 9px;font-family:'Inconsolata',monospace;font-size:11px;font-weight:500;}
+.g-s{background:#e6f4ec;color:#1a6e3a;border-left:3px solid #1a6e3a;}
+.g-a{background:#e8f0fa;color:#1a4a8a;border-left:3px solid #1a4a8a;}
+.g-b{background:#fef8e8;color:#8a6010;border-left:3px solid #c4980a;}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:16px;}
+
+/* progress bars */
+.att-list{padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
+.att-row{}
+.att-meta{display:flex;justify-content:space-between;margin-bottom:5px;}
+.att-course{font-size:12px;font-weight:600;}
+.att-pct{font-family:'Inconsolata',monospace;font-size:12px;color:var(--muted);}
+.bar-bg{height:4px;background:var(--sand);position:relative;}
+.bar-fill{height:100%;position:absolute;left:0;top:0;transition:width .6s ease;}
+.bar-warn{background:var(--rust);}
+.bar-ok{background:var(--green);}
+
+/* notices */
+.notices{padding:14px 20px;display:flex;flex-direction:column;gap:0;}
+.notice{padding:12px 0;border-bottom:1px solid var(--sand);display:flex;gap:12px;}
+.notice:last-child{border-bottom:none;}
+.n-dot{width:6px;height:6px;border-radius:50%;background:var(--rust);flex-shrink:0;margin-top:5px;}
+.n-date{font-family:'Inconsolata',monospace;font-size:10px;color:var(--muted);margin-bottom:3px;letter-spacing:.5px;}
+.n-title{font-size:12px;font-weight:600;line-height:1.4;}
+
+/* quick links */
+.qlinks{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--sand2);}
+.ql{background:var(--white);padding:14px 16px;cursor:pointer;transition:background .15s;}
+.ql:hover{background:#faf8f4;}
+.ql-icon{font-size:18px;margin-bottom:6px;}
+.ql-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.ql-sub{font-family:'Inconsolata',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tl">
+    <div class="t-box"><span>A</span></div>
+    <div>
+      <div class="t-name">Anna University</div>
+      <div class="t-sub">Academic Portal</div>
+    </div>
+  </div>
+  <div class="tr">
+    <div class="tr-info">
+      <div class="tr-name">Root User</div>
+      <div class="tr-roll">227312001 · MCA · Sem 3</div>
+    </div>
+    <div class="avatar">R</div>
+    <button class="logout" onclick="window.location.href='/'">Logout</button>
+  </div>
+</div>
+
+<div class="breadcrumb">AIS / <strong>Dashboard</strong></div>
+
+<div class="main">
+
+  <div class="alert" id="alertBar">
+    <span class="alert-tag">Notice</span>
+    <span class="alert-text">End Semester Examinations commence 18 Apr 2026 — Hall tickets available from Apr 5.</span>
+    <span class="alert-close" onclick="this.parentElement.style.display='none'">×</span>
+  </div>
+
+  <div class="stats">
+    <div class="sc">
+      <div class="sc-top"><span class="sc-icon">📊</span><span class="sc-delta up">▲ 3%</span></div>
+      <div class="sc-val" style="color:var(--green)">84%</div>
+      <div class="sc-lbl">Attendance</div>
+    </div>
+    <div class="sc">
+      <div class="sc-top"><span class="sc-icon">🎓</span><span class="sc-delta up">▲ 0.18</span></div>
+      <div class="sc-val" style="color:var(--blue)">8.91</div>
+      <div class="sc-lbl">CGPA</div>
+    </div>
+    <div class="sc">
+      <div class="sc-top"><span class="sc-icon">📚</span><span class="sc-delta" style="color:var(--muted)">—</span></div>
+      <div class="sc-val" style="color:var(--ink)">6</div>
+      <div class="sc-lbl">Courses</div>
+    </div>
+    <div class="sc">
+      <div class="sc-top"><span class="sc-icon">💳</span><span class="sc-delta down">Due Mar 20</span></div>
+      <div class="sc-val" style="color:var(--rust)">₹38K</div>
+      <div class="sc-lbl">Fee Pending</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="ch"><h3>Courses &amp; Grades — Sem 3</h3><a>Full transcript →</a></div>
+        <table>
+          <thead>
+            <tr><th>Course</th><th>Code</th><th>Faculty</th><th>Credits</th><th>Grade</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Deep Learning</td><td>CS601</td><td>Dr. V. Raman</td><td>4</td><td><span class="g-tag g-s">S</span></td></tr>
+            <tr><td>Computer Networks</td><td>CS603</td><td>Dr. P. Lakshmi</td><td>4</td><td><span class="g-tag g-a">A+</span></td></tr>
+            <tr><td>Compiler Design</td><td>CS605</td><td>Dr. K. Anand</td><td>3</td><td><span class="g-tag g-a">A</span></td></tr>
+            <tr><td>Information Security</td><td>CS607</td><td>Dr. S. Murali</td><td>3</td><td><span class="g-tag g-s">S</span></td></tr>
+            <tr><td>Distributed Systems</td><td>CS609</td><td>Dr. N. Priya</td><td>3</td><td><span class="g-tag g-b">B+</span></td></tr>
+            <tr><td>Open Elective: ML Ops</td><td>CS611</td><td>Dr. A. Kumar</td><td>2</td><td><span class="g-tag g-a">A</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sidebar">
+
+      <div class="card">
+        <div class="ch"><h3>Attendance</h3><a>Details →</a></div>
+        <div class="att-list">
+          <div class="att-row">
+            <div class="att-meta"><span class="att-course">Deep Learning</span><span class="att-pct">91%</span></div>
+            <div class="bar-bg"><div class="bar-fill bar-ok" style="width:91%"></div></div>
+          </div>
+          <div class="att-row">
+            <div class="att-meta"><span class="att-course">Computer Networks</span><span class="att-pct">88%</span></div>
+            <div class="bar-bg"><div class="bar-fill bar-ok" style="width:88%"></div></div>
+          </div>
+          <div class="att-row">
+            <div class="att-meta"><span class="att-course">Compiler Design</span><span class="att-pct">72%</span></div>
+            <div class="bar-bg"><div class="bar-fill bar-warn" style="width:72%"></div></div>
+          </div>
+          <div class="att-row">
+            <div class="att-meta"><span class="att-course">Info Security</span><span class="att-pct">95%</span></div>
+            <div class="bar-bg"><div class="bar-fill bar-ok" style="width:95%"></div></div>
+          </div>
+          <div class="att-row">
+            <div class="att-meta"><span class="att-course">Distributed Systems</span><span class="att-pct">79%</span></div>
+            <div class="bar-bg"><div class="bar-fill bar-ok" style="width:79%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>Notices</h3><a>All →</a></div>
+        <div class="notices">
+          <div class="notice">
+            <div class="n-dot"></div>
+            <div>
+              <div class="n-date">MAR 12, 2026</div>
+              <div class="n-title">CAT-2 marks uploaded — check portal</div>
+            </div>
+          </div>
+          <div class="notice">
+            <div class="n-dot"></div>
+            <div>
+              <div class="n-date">MAR 08, 2026</div>
+              <div class="n-title">Sem 4 course registration opens Mar 20</div>
+            </div>
+          </div>
+          <div class="notice">
+            <div class="n-dot"></div>
+            <div>
+              <div class="n-date">MAR 01, 2026</div>
+              <div class="n-title">Hostel fee deadline extended to Mar 25</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>Quick Access</h3></div>
+        <div class="qlinks">
+          <div class="ql"><div class="ql-icon">📅</div><div class="ql-label">Timetable</div><div class="ql-sub">Sem 3</div></div>
+          <div class="ql"><div class="ql-icon">📝</div><div class="ql-label">Exam Hall</div><div class="ql-sub">Download</div></div>
+          <div class="ql"><div class="ql-icon">💳</div><div class="ql-label">Fee Portal</div><div class="ql-sub">Pay online</div></div>
+          <div class="ql"><div class="ql-icon">📋</div><div class="ql-label">Transcript</div><div class="ql-sub">Request</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -264,23 +264,34 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    location = / {
+        try_files /index.html =404;
+    }
+
+    location = /home {
+        try_files /home.html =404;
+    }
+
+    location = /guest {
+        return 200 '<html><body style="background:#f2efe9;color:#1a1208;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;font-size:14px">Guest access is disabled. Please login.</body></html>';
+        add_header Content-Type text/html;
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
-    }
-
-    location /login {
-        add_header Content-Type application/json;
-        return 401 '{"error":"Invalid credentials"}';
-    }
-
-    location /guest {
-        return 200 '<html><body style="background:#0a0e1a;color:#b0cce0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh"><h2>Guest access denied. Contact administrator.</h2></body></html>';
-        add_header Content-Type text/html;
     }
 }
 NGEOF
 
 sudo nginx -t 2>/dev/null && sudo systemctl reload nginx
+
+# Copy home.html
+[ -f "$SCRIPT_DIR/home.html" ] && sudo cp "$SCRIPT_DIR/home.html" /usr/share/nginx/html/home.html
+
+# Fix nginx log permissions so ec2-user (agent) can read them
+sudo usermod -aG nginx ec2-user
+sudo chmod 755 /var/log/nginx
+sudo chmod 644 /var/log/nginx/access.log 2>/dev/null || true
 echo "[OK] nginx on port 80 with login page"
 
 # ── 4. Postfix SMTP ──────────────────────────────────────────
