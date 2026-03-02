@@ -81,7 +81,6 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
 .sess-card.probe{border-left-color:var(--red);}
 .sess-card.normal{border-left-color:var(--green);}
 .sess-card.blocked{opacity:.45;}
-.sess-card.suspicious{border-left-color:var(--amber);}
 .sess-card:hover{background:rgba(0,229,255,.02);}
 .sess-ip{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--cyan);
   display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
@@ -92,7 +91,6 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
 .badge-gcn-probe{background:rgba(255,100,0,.12);color:#ff6400;border:1px solid rgba(255,100,0,.3);}
 .badge-gcn-normal{background:rgba(100,180,255,.08);color:#64b4ff;border:1px solid rgba(100,180,255,.2);}
 .badge-gcn-na{background:rgba(50,50,50,.2);color:#444;border:1px solid #333;}
-.badge-suspicious{background:rgba(255,171,0,.12);color:var(--amber);border:1px solid rgba(255,171,0,.3);}
 .sess-rules{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
 .rule-tag{display:none;font-size:9px;padding:1px 6px;background:rgba(255,171,0,.08);
   border:1px solid rgba(255,171,0,.2);color:var(--amber);border-radius:2px;font-family:'IBM Plex Mono',monospace;}
@@ -167,7 +165,6 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
   <div class="stat"><div class="stat-n" id="sn-total">0</div><div class="stat-l">Sessions</div></div>
   <div class="stat"><div class="stat-n red"   id="sn-probes">0</div><div class="stat-l">Probes</div></div>
   <div class="stat"><div class="stat-n green" id="sn-normal">0</div><div class="stat-l">Normal</div></div>
-  <div class="stat"><div class="stat-n amber" id="sn-suspicious">0</div><div class="stat-l">Suspicious</div></div>
   <div class="stat"><div class="stat-n amber" id="sn-blocked">0</div><div class="stat-l">Blocked</div></div>
   <div class="stat"><div class="stat-n" id="sn-ports">0</div><div class="stat-l">Max Ports</div></div>
   <div class="stat"><div class="stat-n" id="sn-events">0</div><div class="stat-l">Events</div></div>
@@ -186,13 +183,10 @@ header{position:relative;z-index:10;height:52px;display:flex;align-items:center;
       <div class="legend">
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--red);background:rgba(255,23,68,.15)"></div>Probe</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--green);background:rgba(0,230,118,.1)"></div>Normal</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:var(--amber);background:rgba(255,171,0,.1)"></div>Suspicious</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#9c27b0;background:rgba(156,39,176,.1);border-radius:3px"></div>SSH</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#2979ff;background:rgba(41,121,255,.08);border-radius:3px"></div>HTTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#64b4ff;background:rgba(100,180,255,.08);border-radius:3px"></div>HTTPS</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:#ff6d00;background:rgba(255,109,0,.1);border-radius:3px"></div>FTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:#7c4dff;background:rgba(124,77,255,.1);border-radius:3px"></div>Telnet</div>
-        <div class="leg-item"><div class="leg-dot" style="border-color:#ffd600;background:rgba(255,214,0,.1);border-radius:3px"></div>SMTP</div>
         <div class="leg-item"><div class="leg-dot" style="border-color:var(--blue);background:rgba(41,121,255,.1);border-radius:0"></div>Port Range</div>
       </div>
     </div>
@@ -293,14 +287,12 @@ function handleMsg(msg){
 // ═══════════════════════════════════════════
 function updateStats(){
   var probes      = sessions.filter(function(s){ return s.label==='probe'; }).length;
-  var suspicious  = sessions.filter(function(s){ return s.label==='suspicious'; }).length;
   var normal  = sessions.filter(function(s){ return s.label==='normal'; }).length;
   var blocked = sessions.filter(function(s){ return s.blocked; }).length;
   var maxP    = sessions.reduce(function(m,s){ return Math.max(m,s.ports_scanned||0); },0);
   document.getElementById('sn-total').textContent   = sessions.length;
   document.getElementById('sn-probes').textContent  = probes;
   document.getElementById('sn-normal').textContent      = normal;
-  document.getElementById('sn-suspicious').textContent  = suspicious;
   document.getElementById('sn-blocked').textContent = blocked;
   document.getElementById('sn-ports').textContent   = maxP;
   document.getElementById('sn-events').textContent  = events.length;
@@ -320,7 +312,7 @@ function renderSessions(){
   var sorted = sessions.slice().sort(function(a,b){ return b.score-a.score; });
   document.getElementById('sess-list').innerHTML = sorted.map(function(s){
     var pct   = Math.min(s.score*100,100);
-    var color = s.label==='probe'?'var(--red)':s.label==='suspicious'?'var(--amber)':'var(--green)';
+    var color = s.label==='probe'?'var(--red)':'var(--green)';
     var ruleTags = ''; // rules hidden — detection reason not shown
     var svcs = (s.services||[]).join(' · ')||'—';
 
@@ -354,7 +346,7 @@ function renderSessions(){
 
     return '<div class="sess-card '+s.label+(s.blocked?' blocked':'')+'">'
       +'<div class="sess-ip">'+s.ip
-      +'<span class="badge badge-'+(s.label==='suspicious'?'suspicious':s.label)+'">'+s.label.toUpperCase()+'</span>'
+      +'<span class="badge badge-'+s.label+'">'+s.label.toUpperCase()+'</span>'
       +(s.blocked?'<span class="badge badge-blocked">BLOCKED</span>':'')
       +'</div>'
       // rules not displayed
@@ -425,11 +417,10 @@ function renderGraph(){
 
   var hostNodes    = nodes.filter(function(n){ return n.type==='host'; });
   var serviceNodes = nodes.filter(function(n){ return n.type==='service'; });
-  var portNodes    = nodes.filter(function(n){ return n.type==='portrange'; });
-  var rightNodes   = serviceNodes.concat(portNodes);
+  var rightNodes   = serviceNodes;
 
   document.getElementById('graph-meta').textContent =
-    hostNodes.length+' hosts · '+serviceNodes.length+' services · '+portNodes.length+' port ranges · '+edges.length+' edges';
+    hostNodes.length+' hosts · '+serviceNodes.length+' services · '+edges.length+' edges';
 
   var pad = 80;
   var nodeMap = {};
@@ -474,9 +465,9 @@ function renderGraph(){
     });
 
   // Service colors
-  var svcStroke = {ssh:'#9c27b0',http:'#2979ff',https:'#64b4ff',ftp:'#ff6d00',telnet:'#7c4dff',mysql:'#c864ff',smtp:'#ffd600'};
-  var svcFill   = {ssh:'rgba(156,39,176,.10)',http:'rgba(41,121,255,.08)',https:'rgba(100,180,255,.08)',ftp:'rgba(255,109,0,.10)',telnet:'rgba(124,77,255,.10)',mysql:'rgba(200,100,255,.08)',smtp:'rgba(255,214,0,.10)'};
-  var svcColors = {ssh:'rgba(156,39,176,.9)',http:'rgba(41,121,255,.9)',https:'rgba(100,180,255,.9)',ftp:'rgba(255,109,0,.9)',telnet:'rgba(124,77,255,.9)',mysql:'rgba(200,100,255,.85)',smtp:'rgba(255,214,0,.9)'};
+  var svcStroke = {ssh:'#9c27b0',http:'#2979ff',https:'#64b4ff',telnet:'#7c4dff',mysql:'#c864ff'};
+  var svcFill   = {ssh:'rgba(156,39,176,.10)',http:'rgba(41,121,255,.08)',https:'rgba(100,180,255,.08)',telnet:'rgba(124,77,255,.10)',mysql:'rgba(200,100,255,.08)'};
+  var svcColors = {ssh:'rgba(156,39,176,.9)',http:'rgba(41,121,255,.9)',https:'rgba(100,180,255,.9)',telnet:'rgba(124,77,255,.9)',mysql:'rgba(200,100,255,.85)'};
 
   // Nodes
   var ng = g.selectAll('.node').data(nodes).enter().append('g')
@@ -487,51 +478,76 @@ function renderGraph(){
 
   ng.each(function(d){
     var el=d3.select(this);
+
     if(d.type==='host'){
-      el.append('circle').attr('r',15)
-        .attr('fill',d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':d.classification==='suspicious'?'rgba(255,171,0,.1)':'rgba(0,230,118,.08)')
-        .attr('stroke',d.blocked?'#333':d.classification==='probe'?'var(--red)':d.classification==='suspicious'?'var(--amber)':'var(--green)')
-        .attr('stroke-width',2)
+      // HOST = diamond shape
+      var sz=15;
+      var pts='0,-'+sz+' '+sz+',0 0,'+sz+' -'+sz+',0';
+      var fill=d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)';
+      var strk=d.blocked?'#333':d.classification==='probe'?'var(--red)':'var(--green)';
+      el.append('polygon').attr('points',pts)
+        .attr('fill',fill).attr('stroke',strk).attr('stroke-width',2)
         .attr('filter',d.classification==='probe'&&!d.blocked?'url(#glow)':null);
+      // Pulse ring for probe
       if(d.classification==='probe'&&!d.blocked){
-        el.append('circle').attr('r',15).attr('fill','none')
-          .attr('stroke','rgba(255,23,68,.3)').attr('stroke-width',1.5)
-          .append('animate').attr('attributeName','r').attr('values','15;26;15').attr('dur','1.8s').attr('repeatCount','indefinite');
+        el.append('polygon').attr('points','0,-'+sz+' '+sz+',0 0,'+sz+' -'+sz+',0')
+          .attr('fill','none').attr('stroke','rgba(255,23,68,.25)').attr('stroke-width',1.5)
+          .append('animateTransform').attr('attributeName','transform').attr('type','scale')
+          .attr('values','1;1.7;1').attr('dur','1.8s').attr('repeatCount','indefinite');
       }
-      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','14px').attr('fill','#444').text('×');
+      if(d.blocked) el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','12px').attr('fill','#444').text('×');
+
+      // IP label below diamond
+      el.append('text').attr('text-anchor','middle').attr('x',0).attr('y',22)
+        .attr('dominant-baseline','hanging')
+        .attr('font-family','IBM Plex Mono').attr('font-size','10px')
+        .attr('fill',d.blocked?'#444':d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)')
+        .text(function(){ return d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label; });
+
+      // Score below IP
+      if(d.score>0){
+        el.append('text').attr('text-anchor','middle').attr('x',0).attr('y',35)
+          .attr('font-family','IBM Plex Mono').attr('font-size','9px')
+          .attr('fill','rgba(0,229,255,.35)')
+          .text((d.score*100).toFixed(0)+'%');
+      }
     }
     else if(d.type==='service'){
-      var sk=svcStroke[d.label]||'var(--amber)';
-      var sf=svcFill[d.label]||'rgba(255,171,0,.08)';
-      el.append('polygon').attr('points','0,-12 12,0 0,12 -12,0').attr('fill',sf).attr('stroke',sk).attr('stroke-width',1.5);
+      // SERVICE = circle
+      var sk=svcStroke[d.label]||'#64b4ff';
+      var sf=svcFill[d.label]||'rgba(100,180,255,.08)';
+      el.append('circle').attr('r',13)
+        .attr('fill',sf).attr('stroke',sk).attr('stroke-width',1.5);
+
+      // Service name inside circle
+      el.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('x',0).attr('y',0)
+        .attr('font-family','IBM Plex Mono').attr('font-size','8px')
+        .attr('fill',svcColors[d.label]||'rgba(100,180,255,.9)')
+        .text(d.label.toUpperCase().slice(0,4));
+
+      // Service name below circle
+      el.append('text').attr('text-anchor','middle').attr('x',0).attr('y',20)
+        .attr('dominant-baseline','hanging')
+        .attr('font-family','IBM Plex Mono').attr('font-size','10px')
+        .attr('fill',svcColors[d.label]||'rgba(100,180,255,.9)')
+        .text(d.label);
+
+      // Port/IP below service name (from d.port or d.src_ip)
+      var portLabel = d.port ? ':'+d.port : '';
+      if(portLabel){
+        el.append('text').attr('text-anchor','middle').attr('x',0).attr('y',32)
+          .attr('dominant-baseline','hanging')
+          .attr('font-family','IBM Plex Mono').attr('font-size','9px')
+          .attr('fill','rgba(176,204,224,.3)')
+          .text(portLabel);
+      }
     }
     else{
       el.append('rect').attr('x',-11).attr('y',-11).attr('width',22).attr('height',22).attr('rx',2)
         .attr('fill','rgba(41,121,255,.08)').attr('stroke','var(--blue)').attr('stroke-width',1.5);
     }
   });
-
-  // Labels — IP below host node, service name to right
-  ng.append('text')
-    .attr('text-anchor',function(d){ return d.type==='host'?'middle':'start'; })
-    .attr('x',function(d){ return d.type==='host'?0:18; })
-    .attr('y',function(d){ return d.type==='host'?20:0; })
-    .attr('dominant-baseline',function(d){ return d.type==='host'?'hanging':'middle'; })
-    .attr('font-family','IBM Plex Mono').attr('font-size','11px')
-    .attr('fill',function(d){
-      if(d.blocked) return '#444';
-      if(d.type==='host') return d.classification==='probe'?'rgba(255,80,80,.9)':d.classification==='suspicious'?'rgba(255,171,0,.9)':'rgba(0,230,118,.9)';
-      if(d.type==='portrange') return 'rgba(41,121,255,.8)';
-      return svcColors[d.label]||'rgba(255,171,0,.8)';
-    })
-    .text(function(d){ return d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label; });
-
-  // Score below IP
-  ng.filter(function(d){ return d.type==='host'&&d.score>0; })
-    .append('text').attr('text-anchor','middle').attr('x',0).attr('y',33)
-    .attr('font-family','IBM Plex Mono').attr('font-size','9px')
-    .attr('fill','rgba(0,229,255,.35)')
-    .text(function(d){ return (d.score*100).toFixed(0)+'%'; });
 }
 
 function showTT(ev,d){

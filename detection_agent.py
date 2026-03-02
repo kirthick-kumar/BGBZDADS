@@ -636,30 +636,16 @@ def rebuild_graph():
             "events":         st["event_count"],
         })
 
-        # Edge to each distinct service
+        # Edge to each distinct service — include port number
+        SVC_PORT = {"ssh":2222,"telnet":2223,"http":80,"https":443,"ftp":21,"smtp":25}
         svcs = set(s for _, s in st["services"])
         for svc in svcs:
             svc_id = f"s_{svc}"
             if svc_id not in service_seen:
-                nodes.append({"id": svc_id, "type": "service", "label": svc})
+                nodes.append({"id": svc_id, "type": "service", "label": svc,
+                              "port": SVC_PORT.get(svc, "")})
                 service_seen[svc_id] = True
             edges.append({"source": host_id, "target": svc_id})
-
-        # Port range bucket nodes for wide scanners
-        prune(st["ports"], 120)
-        distinct_ports = set(p for _, p in st["ports"])
-        if len(distinct_ports) >= 5:
-            buckets = set()
-            for p in distinct_ports:
-                if p < 1024:   buckets.add("ports:0-1023")
-                elif p < 8080: buckets.add("ports:1024-8079")
-                else:          buckets.add("ports:8080+")
-            for bkt in buckets:
-                bkt_id = f"b_{bkt}"
-                if bkt_id not in service_seen:
-                    nodes.append({"id": bkt_id, "type": "portrange", "label": bkt})
-                    service_seen[bkt_id] = True
-                edges.append({"source": host_id, "target": bkt_id})
 
     graph_state["nodes"] = nodes
     graph_state["edges"] = edges
