@@ -703,6 +703,30 @@ async def tail_kern_log():
         await process_event(src_ip, "iptables.probe_log", svc, dpt)
 
 # ─────────────────────────────────────────────────────────
+# LAYER 1b: Postfix log tailer (SMTP on port 2525)
+_IP4 = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+POSTFIX_RE  = re.compile(r'postfix.*connect from.*\[' + _IP4 + r'\]', re.IGNORECASE)
+POSTFIX_RE2 = re.compile(r'postfix.*client=\S+\[' + _IP4 + r'\]', re.IGNORECASE)
+
+async def tail_postfix_log():
+    print('[*] Tailing Postfix via journald for SMTP connections')
+    proc = await asyncio.create_subprocess_exec(
+        'journalctl', '-f', '-n', '0', '-u', 'postfix',
+        '--output=short-precise',
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    async for raw in proc.stdout:
+        line = raw.decode('utf-8', errors='ignore')
+        m = POSTFIX_RE.search(line) or POSTFIX_RE2.search(line)
+        if not m:
+            continue
+        src_ip = m.group(1)
+        if src_ip in ('127.0.0.1', '::1'):
+            continue
+        print(f'[SMTP] {src_ip} -> port 2525', flush=True)
+        await process_event(src_ip, 'iptables.probe_log', 'smtp', 2525)
+
 # LAYER 2: Cowrie JSON tailer
 # ─────────────────────────────────────────────────────────
 async def tail_cowrie_log():
@@ -894,6 +918,7 @@ async def main():
 
     await asyncio.gather(
         tail_kern_log(),
+        tail_postfix_log(),
         tail_cowrie_log(),
         tail_http_log(),
     )
