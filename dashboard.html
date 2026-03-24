@@ -533,14 +533,15 @@ function renderGraph(){
         .attr('fill',svcColors[d.label]||'rgba(100,180,255,.9)')
         .text(d.label);
 
-      // Port/IP below service name (from d.port or d.src_ip)
+      // Server IP below service name
+      var srvIP = document.getElementById('srv-ip').value.trim() || '';
       var portLabel = d.port ? ':'+d.port : '';
-      if(portLabel){
+      if(srvIP){
         el.append('text').attr('text-anchor','middle').attr('x',0).attr('y',32)
           .attr('dominant-baseline','hanging')
           .attr('font-family','IBM Plex Mono').attr('font-size','9px')
           .attr('fill','rgba(176,204,224,.3)')
-          .text(portLabel);
+          .text(srvIP + portLabel);
       }
     }
     else{
