@@ -127,6 +127,7 @@ home_mailbox = Maildir/
 smtpd_banner = $myhostname ESMTP Postfix
 disable_vrfy_command = no
 smtpd_helo_required = no
+smtpd_relay_restrictions = permit_mynetworks reject_unauth_destination
 PFEOF
 
 # Listen on 2525 instead of 25 (AWS blocks outbound 25)
