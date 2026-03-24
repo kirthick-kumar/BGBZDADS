@@ -465,9 +465,9 @@ function renderGraph(){
     });
 
   // Service colors
-  var svcStroke = {ssh:'#9c27b0',http:'#2979ff',https:'#64b4ff',telnet:'#7c4dff',mysql:'#c864ff'};
-  var svcFill   = {ssh:'rgba(156,39,176,.10)',http:'rgba(41,121,255,.08)',https:'rgba(100,180,255,.08)',telnet:'rgba(124,77,255,.10)',mysql:'rgba(200,100,255,.08)'};
-  var svcColors = {ssh:'rgba(156,39,176,.9)',http:'rgba(41,121,255,.9)',https:'rgba(100,180,255,.9)',telnet:'rgba(124,77,255,.9)',mysql:'rgba(200,100,255,.85)'};
+  var svcStroke = {ssh:'#9c27b0',http:'#2979ff',https:'#64b4ff',telnet:'#7c4dff',smtp:'#ffd600',mysql:'#c864ff'};
+  var svcFill   = {ssh:'rgba(156,39,176,.10)',http:'rgba(41,121,255,.08)',https:'rgba(100,180,255,.08)',telnet:'rgba(124,77,255,.10)',smtp:'rgba(255,214,0,.10)',mysql:'rgba(200,100,255,.08)'};
+  var svcColors = {ssh:'rgba(156,39,176,.9)',http:'rgba(41,121,255,.9)',https:'rgba(100,180,255,.9)',telnet:'rgba(124,77,255,.9)',smtp:'rgba(255,214,0,.9)',mysql:'rgba(200,100,255,.85)'};
 
   // Nodes
   var ng = g.selectAll('.node').data(nodes).enter().append('g')

@@ -637,7 +637,7 @@ def rebuild_graph():
         })
 
         # Edge to each distinct service — include port number
-        SVC_PORT = {"ssh":2222,"telnet":2223,"http":80,"https":443,"ftp":21,"smtp":25}
+        SVC_PORT = {"ssh":2222,"telnet":2223,"http":80,"https":443,"smtp":2525}
         svcs = set(s for _, s in st["services"])
         for svc in svcs:
             svc_id = f"s_{svc}"
