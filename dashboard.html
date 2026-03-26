@@ -312,7 +312,7 @@ function renderSessions(){
   var sorted = sessions.slice().sort(function(a,b){ return b.score-a.score; });
   document.getElementById('sess-list').innerHTML = sorted.map(function(s){
     var pct   = Math.min(s.score*100,100);
-    var color = s.label==='probe'?'var(--red)':'var(--green)';
+    var color = s.label==='probe'?'var(--red)':s.label==='zeroday'?'#ff6400':'var(--green)';
     var ruleTags = ''; // rules hidden — detection reason not shown
     var svcs = (s.services||[]).join(' · ')||'—';
 
@@ -486,8 +486,8 @@ function renderGraph(){
       // HOST = diamond shape
       var sz=15;
       var pts='0,-'+sz+' '+sz+',0 0,'+sz+' -'+sz+',0';
-      var fill=d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':'rgba(0,230,118,.08)';
-      var strk=d.blocked?'#333':d.classification==='probe'?'var(--red)':'var(--green)';
+      var fill=d.blocked?'#111':d.classification==='probe'?'rgba(255,23,68,.12)':d.classification==='zeroday'?'rgba(255,100,0,.12)':'rgba(0,230,118,.08)';
+      var strk=d.blocked?'#333':d.classification==='probe'?'var(--red)':d.classification==='zeroday'?'#ff6400':'var(--green)';
       el.append('polygon').attr('points',pts)
         .attr('fill',fill).attr('stroke',strk).attr('stroke-width',2)
         .attr('filter',d.classification==='probe'&&!d.blocked?'url(#glow)':null);
@@ -504,7 +504,7 @@ function renderGraph(){
       el.append('text').attr('text-anchor','middle').attr('x',0).attr('y',22)
         .attr('dominant-baseline','hanging')
         .attr('font-family','IBM Plex Mono').attr('font-size','10px')
-        .attr('fill',d.blocked?'#444':d.classification==='probe'?'rgba(255,80,80,.9)':'rgba(0,230,118,.9)')
+        .attr('fill',d.blocked?'#444':d.classification==='probe'?'rgba(255,80,80,.9)':d.classification==='zeroday'?'rgba(255,100,0,.9)':'rgba(0,230,118,.9)')
         .text(function(){ return d.label&&d.label.length>18?d.label.slice(0,16)+'…':d.label; });
 
       // Score below IP

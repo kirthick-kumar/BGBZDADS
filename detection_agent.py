@@ -67,7 +67,7 @@ RULES = {
 
 # Services that require MULTIPLE failed attempts before counting toward brute force
 # A single telnet/ssh login attempt is normal — not an attack
-BRUTE_FORCE_SERVICES = {"ssh", "telnet", "ftp", "smtp"}
+BRUTE_FORCE_SERVICES = {"ssh", "telnet", "ftp"}
 
 # Services that are "normal" — HTTP visits alone never trigger probe detection
 BENIGN_ONLY_SERVICES = {"http", "https"}
@@ -623,16 +623,17 @@ async def process_event(ip: str, event_type: str, service: str,
     st["score"] = score
 
     # Run GCN model inference
-    gcn = run_gcn_inference(ip, service, event_type, dst_port, st)
-
-    # Zero-day detection for SMTP
     if service == "smtp":
+        # SMTP: use Zero-Day model only — skip GCN entirely
+        gcn = {"gcn_prediction": "N/A", "gcn_confidence": 0.0,
+               "gcn_score": 0.0, "reconstruction_error": 0.0}
         zd = run_zeroday_inference(ip, service, event_type, dst_port, st)
-        if zd["zd_prediction"] == "ZERO-DAY":
-            st["triggered_rules"].add("Zero-Day SMTP Attack")
         st["zd_prediction"] = zd["zd_prediction"]
         st["zd_error"]      = zd["zd_error"]
+        if zd["zd_prediction"] == "ZERO-DAY":
+            st["triggered_rules"].add("Zero-Day SMTP Attack")
     else:
+        gcn = run_gcn_inference(ip, service, event_type, dst_port, st)
         st["zd_prediction"] = "N/A"
         st["zd_error"]      = 0.0
     st["gcn_prediction"]       = gcn["gcn_prediction"]
@@ -646,16 +647,25 @@ async def process_event(ip: str, event_type: str, service: str,
     #   - Auto-block only when heuristic rules fire (not GCN alone)
     gcn_says_probe = gcn["gcn_prediction"] == "PROBE"
 
-    if is_probe or gcn_says_probe:
+    zd_says_attack = st.get("zd_prediction") == "ZERO-DAY"
+
+    if service == "smtp":
+        # SMTP labelled purely by zero-day model
+        if zd_says_attack:
+            st["label"] = "zeroday"
+            if ip not in blocked_ips:
+                block_ip(ip)
+        elif st["label"] not in ("zeroday",):
+            st["label"] = "normal"
+    elif is_probe or gcn_says_probe:
         st["label"] = "probe"
         for r in rules_hit:
             st["triggered_rules"].add(r)
         if gcn_says_probe:
             st["triggered_rules"].add("GCN Anomaly")
-        # Block on heuristic OR GCN probe detection
         if ip not in blocked_ips:
             block_ip(ip)
-    elif st["label"] != "probe":
+    elif st["label"] not in ("probe", "zeroday"):
         st["label"] = "normal"
 
     # Log event
