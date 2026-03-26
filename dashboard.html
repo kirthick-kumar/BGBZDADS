@@ -347,6 +347,9 @@ function renderSessions(){
     return '<div class="sess-card '+s.label+(s.blocked?' blocked':'')+'">'
       +'<div class="sess-ip">'+s.ip
       +'<span class="badge badge-'+s.label+'">'+s.label.toUpperCase()+'</span>'
+      +(s.zd_prediction&&s.zd_prediction!=='N/A'&&s.zd_prediction!=='ERR'
+        ?'<span class="badge" style="background:rgba(255,100,0,.12);color:#ff6400;border:1px solid rgba(255,100,0,.3);margin-left:4px">ZD:'+s.zd_prediction+'</span>'
+        :'')
       +(s.blocked?'<span class="badge badge-blocked">BLOCKED</span>':'')
       +'</div>'
       // rules not displayed

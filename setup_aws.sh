@@ -190,7 +190,7 @@ sudo mkdir -p $AGENT_DIR
 sudo chown ec2-user:ec2-user $AGENT_DIR
 cp "$SCRIPT_DIR/detection_agent.py" $AGENT_DIR/
 
-for f in gcn_autoencoder.pth scaler.pkl encoders.pkl threshold.txt; do
+for f in gcn_autoencoder.pth zeroday_autoencoder.pth scaler.pkl encoders.pkl threshold.txt; do
     [ -f "$SCRIPT_DIR/$f" ] && cp "$SCRIPT_DIR/$f" $AGENT_DIR/ && echo "    copied $f"
 done
 
@@ -208,6 +208,7 @@ Environment=HTTP_LOG=/var/log/nginx/access.log
 Environment=MODEL_PATH=${AGENT_DIR}/gcn_autoencoder.pth
 Environment=SCALER_PATH=${AGENT_DIR}/scaler.pkl
 Environment=ENCODER_PATH=${AGENT_DIR}/encoders.pkl
+Environment=ZD_MODEL_PATH=${AGENT_DIR}/zeroday_autoencoder.pth
 Environment=WS_PORT=8765
 Environment=HTTP_PORT=8080
 Environment=PATH=/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin

@@ -44,7 +44,9 @@ import aiohttp_cors
 COWRIE_LOG = os.getenv("COWRIE_LOG", "/home/ec2-user/cowrie/var/log/cowrie/cowrie.json")
 KERN_LOG   = os.getenv("KERN_LOG",   "/var/log/kern.log")
 HTTP_LOG   = os.getenv("HTTP_LOG",   "/var/log/nginx/access.log")
-MODEL_PATH = os.getenv("MODEL_PATH", "gcn_autoencoder.pth")
+MODEL_PATH    = os.getenv("MODEL_PATH",    "gcn_autoencoder.pth")
+ZD_MODEL_PATH = os.getenv("ZD_MODEL_PATH", "zeroday_autoencoder.pth")
+ZD_THRESHOLD  = 0.246   # ROC-optimal threshold from training
 SCALER_PATH  = os.getenv("SCALER_PATH","scaler.pkl")
 ENCODER_PATH = os.getenv("ENCODER_PATH","encoders.pkl")
 WS_PORT    = int(os.getenv("WS_PORT",  "8765"))
@@ -86,6 +88,34 @@ class GCN_AE(nn.Module):
         return self.decoder(z)
 
 model = GCN_AE(IN_CHANNELS, HIDDEN_DIM).to(DEVICE)
+
+# ── Zero-Day Autoencoder (simple MLP, for SMTP zero-day detection) ──
+class ZeroDay_AE(nn.Module):
+    def __init__(self, input_dim=41, hidden_dim=32):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 64), nn.ReLU(),
+            nn.Linear(64, hidden_dim), nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, 64), nn.ReLU(),
+            nn.Linear(64, input_dim)
+        )
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+zd_model = ZeroDay_AE().to(DEVICE)
+zd_available = False
+if os.path.exists(ZD_MODEL_PATH):
+    try:
+        zd_model.load_state_dict(torch.load(ZD_MODEL_PATH, map_location=DEVICE, weights_only=True))
+        zd_model.eval()
+        zd_available = True
+        print(f"[✓] Zero-Day model loaded from {ZD_MODEL_PATH}")
+    except Exception as e:
+        print(f"[!] Zero-Day model load error: {e}")
+else:
+    print(f"[!] Zero-Day model not found at {ZD_MODEL_PATH} — SMTP zero-day detection disabled")
 gcn_available = False
 if os.path.exists(MODEL_PATH):
     try:
@@ -389,6 +419,50 @@ def run_gcn_inference(ip: str, service: str, event_type: str,
         return {"gcn_prediction": "ERR", "gcn_confidence": 0.0,
                 "gcn_score": 0.0, "reconstruction_error": 0.0}
 
+def run_zeroday_inference(ip: str, service: str, event_type: str,
+                          dst_port: int, st: dict) -> dict:
+    """
+    Zero-day autoencoder — trained on NORMAL traffic only.
+    High reconstruction error = anomaly = potential zero-day attack.
+    Uses ROC-optimal threshold: 0.246
+    """
+    if not zd_available or scaler is None:
+        return {"zd_prediction": "N/A", "zd_error": 0.0}
+
+    try:
+        raw_features = extract_features(ip, service, event_type, dst_port, st)
+        _feat_cols = [
+            'duration','protocol_type','service','flag','src_bytes','dst_bytes','land',
+            'wrong_fragment','urgent','hot','num_failed_logins','logged_in',
+            'num_compromised','root_shell','su_attempted','num_root','num_file_creations',
+            'num_shells','num_access_files','num_outbound_cmds','is_host_login',
+            'is_guest_login','count','srv_count','serror_rate','srv_serror_rate',
+            'rerror_rate','srv_rerror_rate','same_srv_rate','diff_srv_rate',
+            'srv_diff_host_rate','dst_host_count','dst_host_srv_count',
+            'dst_host_same_srv_rate','dst_host_diff_srv_rate',
+            'dst_host_same_src_port_rate','dst_host_srv_diff_host_rate',
+            'dst_host_serror_rate','dst_host_srv_serror_rate',
+            'dst_host_rerror_rate','dst_host_srv_rerror_rate',
+        ][:len(raw_features)]
+        import pandas as _pd
+        _df = _pd.DataFrame(raw_features.reshape(1, -1), columns=_feat_cols)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            scaled = scaler.transform(_df)
+
+        x = torch.tensor(scaled, dtype=torch.float32).to(DEVICE)
+        with torch.no_grad():
+            recon = zd_model(x)
+            error = torch.mean((recon - x) ** 2).item()
+
+        prediction = "ZERO-DAY" if error > ZD_THRESHOLD else "NORMAL"
+        print(f"[ZD] {ip} smtp | error={error:.5f} thresh={ZD_THRESHOLD} → {prediction}", flush=True)
+        return {"zd_prediction": prediction, "zd_error": round(float(error), 6)}
+
+    except Exception as e:
+        print(f"[!] Zero-day inference error: {e}")
+        return {"zd_prediction": "ERR", "zd_error": 0.0}
+
 # ─────────────────────────────────────────────────────────
 # STATE
 # ─────────────────────────────────────────────────────────
@@ -550,6 +624,17 @@ async def process_event(ip: str, event_type: str, service: str,
 
     # Run GCN model inference
     gcn = run_gcn_inference(ip, service, event_type, dst_port, st)
+
+    # Zero-day detection for SMTP
+    if service == "smtp":
+        zd = run_zeroday_inference(ip, service, event_type, dst_port, st)
+        if zd["zd_prediction"] == "ZERO-DAY":
+            st["triggered_rules"].add("Zero-Day SMTP Attack")
+        st["zd_prediction"] = zd["zd_prediction"]
+        st["zd_error"]      = zd["zd_error"]
+    else:
+        st["zd_prediction"] = "N/A"
+        st["zd_error"]      = 0.0
     st["gcn_prediction"]       = gcn["gcn_prediction"]
     st["gcn_confidence"]       = gcn["gcn_confidence"]
     st["gcn_score"]            = gcn["gcn_score"]
@@ -584,6 +669,8 @@ async def process_event(ip: str, event_type: str, service: str,
         "label":                st["label"],
         "rules":                list(st["triggered_rules"]),
         "gcn_prediction":       gcn["gcn_prediction"],
+        "zd_prediction":        st.get("zd_prediction","N/A"),
+        "zd_error":             st.get("zd_error", 0.0),
         "gcn_confidence":       gcn["gcn_confidence"],
         "gcn_score":            gcn["gcn_score"],
         "reconstruction_error": gcn["reconstruction_error"],
