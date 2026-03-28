@@ -95,7 +95,7 @@ attack_os_scan(){
     ok "OS scan done"
 }
 
-# ── 6: Normal access ─────────────────────────
+# ── 6: Normal access sim ─────────────────────────────────────
 normal_access(){
     log "Normal access sim"
     for wave in 1 2 3; do
@@ -112,25 +112,10 @@ normal_access(){
         sleep 2
     done
     wait
-    ok "Normal Access done"
+    ok "Normal access done"
 }
 
-# ── 7: HTTP path enumeration ──────────────────────────────────
-attack_http_enum(){
-    log "HTTP path enumeration → HTTP scan node"
-    for path in / /admin /login /wp-admin /phpmyadmin /.env /config \
-                /backup /api/v1 /shell /manager /console /dashboard \
-                /administrator /wp-login.php /.git/config /server-status; do
-        curl -s -o /dev/null --connect-timeout 2 \
-            -H "User-Agent: Nikto/2.1.6" \
-            "http://$TARGET$path" 2>/dev/null &
-        sleep 0.15
-    done
-    wait
-    ok "HTTP enumeration done"
-}
-
-# ── 8: HTTP login brute force ─────────────────────────────────
+# ── 7: HTTP login brute force ─────────────────────────────────
 attack_http_login_brute(){
     log "HTTP login brute force → POST /login attack"
     for user in admin root administrator user guest superuser operator; do
@@ -149,92 +134,58 @@ attack_http_login_brute(){
     ok "HTTP login brute force done"
 }
 
-# ── 9: FULL DEMO ──────────────────────────────────────────────
-attack_full_demo(){
-    echo ""
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${RED} FULL DEMO SEQUENCE — watch the dashboard${NC}"
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+# ── 8: Normal SMTP send (legitimate mail simulation) ─────────
+smtp_normal(){
+    log "Normal SMTP send → legitimate mail pattern (NORMAL label expected)"
+    (
+        sleep 0.3; echo "EHLO mail.annauniv.edu"
+        sleep 0.4; echo "MAIL FROM:<kirthickkumarkk2@gmail.com>"
+        sleep 0.4; echo "RCPT TO:<admin@prod-server-01.local>"
+        sleep 0.4; echo "DATA"
+        sleep 0.3; echo "From: kirthickkumarkk2@gmail.com"
+        echo "To: admin@prod-server-01.local"
+        echo "Subject: Project Submission — GCN Probe Detector"
+        echo ""
+        echo "Dear Admin,"
+        echo ""
+        echo "Please find attached the final project report for"
+        echo "the GCN-based network probe detection system."
+        echo ""
+        echo "Regards,"
+        echo "Kirthick Kumar"
+        sleep 0.3; echo "."
+        sleep 0.4; echo "QUIT"
+    ) | nc -w8 $TARGET 2525
+    ok "Normal SMTP send done"
+}
 
-    echo ""; log "Phase 1/6: Service Scan — Multi-Service Probe..."
-    nmap -T3 -p 22,2222,2223,80,443 $TARGET 2>/dev/null || true
-    sleep 4
+# ── 9: SMTP probe attack (zero-day pattern) ───────────────────
+smtp_attack(){
+    log "SMTP probe attack → Zero-Day detection (orange node expected)"
+    log "Sending rapid relay attempts + VRFY enumeration..."
 
-    echo ""; log "Phase 2/6: Rapid Connection Flood..."
-    for i in $(seq 1 30); do
-        nc -z -w1 $TARGET 2222 2>/dev/null &
-        nc -z -w1 $TARGET 80   2>/dev/null &
-        nc -z -w1 $TARGET 2223 2>/dev/null &
-        sleep 0.05
-    done
-    wait
-    sleep 4
-
-    echo ""; log "Phase 3/6: HTTP Login Brute Force..."
-    for user in admin root administrator; do
-        for pass in password 123456 admin admin123; do
-            curl -s -o /dev/null -X POST "http://$TARGET/" \
-                -d "username=${user}&password=${pass}" \
-                -H "Content-Type: application/x-www-form-urlencoded" \
-                -H "User-Agent: Mozilla/5.0 zgrab/0.x" \
-                --connect-timeout 2 2>/dev/null &
+    # Multiple rapid connections with suspicious commands
+    for i in $(seq 1 6); do
+        (
             sleep 0.1
-        done
+            printf "EHLO attacker-$(hostname).evil.com\r\n"
+            sleep 0.2
+            printf "VRFY root\r\n"
+            sleep 0.2
+            printf "MAIL FROM:<spam@evil-$(echo $RANDOM).com>\r\n"
+            sleep 0.2
+            printf "RCPT TO:<root@external-target.com>\r\n"
+            sleep 0.2
+            printf "RCPT TO:<admin@external-target.com>\r\n"
+            sleep 0.2
+            printf "EXPN admins\r\n"
+            sleep 0.2
+            printf "QUIT\r\n"
+        ) | nc -w5 $TARGET 2525 2>/dev/null &
+        sleep 0.2
     done
     wait
-    sleep 4
-
-    echo ""; log "Phase 4/6: SSH Brute Force on Cowrie (port 2222)..."
-    for user in root admin ubuntu pi; do
-        for pass in password 123456 admin root; do
-            ssh -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=2 \
-                -o PasswordAuthentication=yes \
-                -o PreferredAuthentications=password \
-                -o LogLevel=quiet \
-                -p 2222 \
-                ${user}@${TARGET} exit 2>/dev/null &
-            sleep 0.15
-        done
-    done
-    wait
-    sleep 4
-
-    echo ""; log "Phase 5/6: Telnet Brute Force on Cowrie (port 2223)..."
-    for user in root admin guest; do
-        for pass in password admin 123456; do
-            (
-                sleep 0.8
-                echo "$user"
-                sleep 0.4
-                echo "$pass"
-                sleep 0.4
-                echo "exit"
-            ) | telnet $TARGET 2223 2>/dev/null &
-            sleep 0.3
-        done
-    done
-    wait
-    sleep 4
-
-    echo ""; log "Phase 6/6: HTTP Path Enumeration..."
-    for path in / /admin /login /wp-admin /phpmyadmin /.env /config /backup /api/v1; do
-        curl -s -o /dev/null --connect-timeout 2 \
-            -H "User-Agent: Nikto/2.1.6" \
-            "http://$TARGET$path" 2>/dev/null &
-        sleep 0.15
-    done
-    wait
-
-    echo ""
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN} DEMO COMPLETE — dashboard should show:${NC}"
-    echo "  • Red probe node for your IP"
-    echo "  • Service nodes: ssh (purple), http (blue), telnet (violet)"
-    echo "  • Multi-Service + Rapid Conn + Brute Force detected"
-    echo "  • GCN model prediction: PROBE"
-    echo "  • IP auto-blocked"
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    ok "SMTP attack done — check dashboard for orange Zero-Day node"
 }
 
 # ── MENU ──────────────────────────────────────────────────────
@@ -244,10 +195,12 @@ echo "  2)  SSH brute force (2222)     → Brute Force rule"
 echo "  3)  Telnet brute force (2223)  → Brute Force + Telnet node"
 echo "  4)  Rapid connection flood     → Rapid Connections rule"
 echo "  5)  OS fingerprint scan        → Aggressive detection"
-echo "  6)  Normal Access sim          → Normal Access pattern"
-echo "  7)  HTTP login & enumeration   → POST /login attack"
+echo "  6)  Normal access sim          → Normal access pattern"
+echo "  7)  HTTP login brute force     → POST /login attack"
+echo "  8)  Normal SMTP send           → Legitimate mail (NORMAL)"
+echo "  9)  SMTP probe attack          → Zero-Day detection (orange)"
 echo ""
-read -p "Choice [1-7]: " c
+read -p "Choice [1-9]: " c
 
 case $c in
     1) attack_service_scan ;;
@@ -257,6 +210,7 @@ case $c in
     5) attack_os_scan ;;
     6) normal_access ;;
     7) attack_http_login_brute ;;
-    8) attack_full_demo ;;
+    8) smtp_normal ;;
+    9) smtp_attack ;;
     *) echo "Invalid choice"; exit 1 ;;
 esac
