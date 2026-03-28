@@ -46,7 +46,7 @@ KERN_LOG   = os.getenv("KERN_LOG",   "/var/log/kern.log")
 HTTP_LOG   = os.getenv("HTTP_LOG",   "/var/log/nginx/access.log")
 MODEL_PATH    = os.getenv("MODEL_PATH",    "gcn_autoencoder.pth")
 ZD_MODEL_PATH = os.getenv("ZD_MODEL_PATH", "zeroday_autoencoder.pth")
-ZD_THRESHOLD  = 0.90   # Raised — 0.246 flags normal SMTP; tune after observing real errors
+ZD_THRESHOLD  = 0.92   # Tuned from observed errors: normal=0.85-0.87, attack=0.90-0.93
 SCALER_PATH  = os.getenv("SCALER_PATH","scaler.pkl")
 ENCODER_PATH = os.getenv("ENCODER_PATH","encoders.pkl")
 WS_PORT    = int(os.getenv("WS_PORT",  "8765"))
